@@ -1,5 +1,5 @@
 /* Boxli Brawl - Service Worker (Offline-Cache) */
-const CACHE = "boxli-brawl-v3";
+const CACHE = "boxli-brawl-v4";
 const ASSETS = [
   "./",
   "./index.html",

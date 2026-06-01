@@ -39,7 +39,9 @@ html, body {
 
 /* ---------- Screens ---------- */
 .screen { position: absolute; inset: 0; display: none; flex-direction: column; }
-.screen.active { display: flex; }
+.screen.active { display: flex; animation: screenIn .34s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes screenIn { from { opacity: 0; transform: translateY(10px) scale(.992); }
+  to { opacity: 1; transform: translateY(0) scale(1); } }
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -93,9 +95,48 @@ html, body {
   padding: 6px 10px; font-weight: bold; box-shadow: 0 3px 0 var(--shadow); font-size: 14px; }
 
 /* ---------- Arena ---------- */
-.arena { position: relative; flex: 1; overflow: hidden; }
-.arena::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 38%;
-  background: linear-gradient(var(--grass), var(--grass-dark)); }
+.arena { position: relative; flex: 1; overflow: hidden;
+  background: linear-gradient(#9fdcf5 0%, #bfeaff 55%, #d6f2ff 75%); }
+
+/* lebendiger Hintergrund */
+.arena-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+.sun-rays { position: absolute; top: -40%; left: 50%; width: 160%; height: 160%;
+  transform: translateX(-50%);
+  background: repeating-conic-gradient(from 0deg at 50% 0%,
+    rgba(255,255,255,.16) 0deg 7deg, rgba(255,255,255,0) 7deg 18deg);
+  animation: sunspin 60s linear infinite; opacity: .7; }
+@keyframes sunspin { to { transform: translateX(-50%) rotate(360deg); } }
+
+.cloud { position: absolute; background: #fff; border-radius: 50%;
+  box-shadow: 28px 6px 0 -4px #fff, 58px 10px 0 -8px #fff, -26px 8px 0 -6px #fff;
+  opacity: .92; filter: drop-shadow(0 6px 6px rgba(120,170,200,.18)); }
+.cloud.c1 { width: 60px; height: 26px; top: 12%; left: -25%; animation: drift1 26s linear infinite; }
+.cloud.c2 { width: 44px; height: 20px; top: 24%; left: -25%; animation: drift2 38s linear infinite; opacity: .8; transform: scale(.8); }
+.cloud.c3 { width: 72px; height: 30px; top: 6%;  left: -30%; animation: drift1 46s linear infinite; opacity: .85; }
+@keyframes drift1 { from { transform: translateX(0); } to { transform: translateX(170vw); } }
+@keyframes drift2 { from { transform: translateX(0) scale(.8); } to { transform: translateX(180vw) scale(.8); } }
+
+/* sanfte Hügel (Tiefe + Parallaxe) */
+.hill { position: absolute; left: -10%; right: -10%; border-radius: 50% 50% 0 0; }
+.hill-back  { bottom: 32%; height: 26%; background: #a8e08a; animation: sway 7s ease-in-out infinite; }
+.hill-front { bottom: 0;   height: 40%; background: linear-gradient(var(--grass), var(--grass-dark));
+  border-radius: 42% 58% 0 0 / 60% 60% 0 0; }
+@keyframes sway { 0%,100% { transform: translateX(-2%); } 50% { transform: translateX(2%); } }
+
+/* aufsteigende Bläschen */
+.bubbles { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+.bubbles span { position: absolute; bottom: -8%; width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.9), rgba(255,255,255,.15));
+  animation: rise linear infinite; }
+.bubbles span:nth-child(1){ left: 12%; animation-duration: 6s; animation-delay: 0s; }
+.bubbles span:nth-child(2){ left: 28%; width: 8px; height: 8px; animation-duration: 8s; animation-delay: 2s; }
+.bubbles span:nth-child(3){ left: 48%; width: 14px; height: 14px; animation-duration: 7s; animation-delay: 1s; }
+.bubbles span:nth-child(4){ left: 66%; width: 9px; height: 9px; animation-duration: 9s; animation-delay: 3s; }
+.bubbles span:nth-child(5){ left: 80%; width: 12px; height: 12px; animation-duration: 6.5s; animation-delay: .5s; }
+.bubbles span:nth-child(6){ left: 90%; width: 7px; height: 7px; animation-duration: 8.5s; animation-delay: 2.5s; }
+@keyframes rise { 0% { transform: translateY(0) scale(.6); opacity: 0; }
+  15% { opacity: .8; } 100% { transform: translateY(-340px) scale(1); opacity: 0; } }
+
 #home-creature { position: absolute; left: 50%; top: 52%; transform: translate(-50%,-50%); z-index: 2; }
 #food-layer, #float-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .food-item { position: absolute; font-size: 34px; pointer-events: auto; cursor: pointer;

@@ -264,16 +264,16 @@ const UI = {
 
   animateMini() {
     const canvas = document.getElementById("training-canvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = this.prep(canvas);
     const sp = Game.species();
     const pose = sp.move === "Tritt" ? "kick" : "punch";
     const loop = (now) => {
       if (!this._miniActive) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas._w, canvas._h);
       // leicht wippende Kreatur in Bereitschaft
       Creature.draw(ctx, {
         species: sp, stage: Game.state.evoStage,
-        cx: canvas.width / 2, cy: canvas.height / 2 - 10,
+        cx: canvas._w / 2, cy: canvas._h / 2 - 10,
         scale: 1.5, facing: 1, t: now, pose: "idle",
       });
       this.drawMiniBar(ctx, canvas, this.miniPos(now));
@@ -283,7 +283,7 @@ const UI = {
   },
 
   drawMiniBar(ctx, canvas, pos) {
-    const x0 = 30, x1 = canvas.width - 30, y = canvas.height - 40, h = 22;
+    const x0 = 30, x1 = canvas._w - 30, y = canvas._h - 40, h = 22;
     const w = x1 - x0;
     // Schiene
     ctx.fillStyle = "#e9d8b6";
@@ -339,7 +339,7 @@ const UI = {
 
   playTrainingHit(res, label) {
     const canvas = document.getElementById("training-canvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = this.prep(canvas);
     const sp = Game.species();
     const pose = sp.move === "Tritt" ? "kick" : "punch";
     const start = performance.now();
@@ -347,16 +347,16 @@ const UI = {
     let hitPlayed = false;
     const animate = (now) => {
       const e = Math.min(1, (now - start) / dur);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas._w, canvas._h);
       const phase = (e * 2) % 1;
       const amt = Math.sin(phase * Math.PI);
       Creature.draw(ctx, {
         species: sp, stage: Game.state.evoStage,
-        cx: canvas.width / 2 - 20, cy: canvas.height / 2 + 10,
+        cx: canvas._w / 2 - 20, cy: canvas._h / 2 + 10,
         scale: 1.5, facing: 1, t: now, pose, poseAmt: amt,
       });
       if (amt > 0.7) {
-        Creature.burst(ctx, canvas.width / 2 + 70, canvas.height / 2, 1.1 + amt * 0.4);
+        Creature.burst(ctx, canvas._w / 2 + 70, canvas._h / 2, 1.1 + amt * 0.4);
         if (!hitPlayed) { Sound.play("hit"); hitPlayed = true; }
       }
       if (e < 1) requestAnimationFrame(animate);
@@ -401,12 +401,12 @@ const UI = {
 
   drawLeagueIdle() {
     const canvas = document.getElementById("league-canvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = this.prep(canvas);
     const boss = Game.isBossDuel();
     const draw = (now) => {
       if (this.current !== "league" || this._leagueFighting) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      this.drawRing(ctx, canvas);
+      ctx.clearRect(0, 0, canvas._w, canvas._h);
+      this.drawRing(ctx, canvas, now);
       Creature.draw(ctx, { species: Game.species(), stage: Game.state.evoStage, cx: 110, cy: 220, scale: 1.1, facing: 1, t: now, pose: "idle" });
       Creature.draw(ctx, { species: this.leagueOpponent, stage: this.oppStage, cx: 250, cy: 220, scale: boss ? 1.25 : 1.1, facing: -1, t: now + 300, pose: "idle" });
       this.drawKKTag(ctx, 110, 96, Game.state.kk, "#5fa030");
@@ -416,25 +416,48 @@ const UI = {
     requestAnimationFrame(draw);
   },
 
-  drawRing(ctx, canvas) {
+  drawRing(ctx, canvas, t) {
+    t = t || 0;
     const lg = Game.currentLeague();
+    const W = canvas._w, H = canvas._h;
     // Himmel-Verlauf je Liga
-    const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    const grd = ctx.createLinearGradient(0, 0, 0, H);
     grd.addColorStop(0, lg.bg[0]);
     grd.addColorStop(1, lg.bg[1]);
     ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, W, H);
+    // driftende Wolken
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    for (let i = 0; i < 3; i++) {
+      const cx = ((t / (60 + i * 25) + i * 130) % (W + 80)) - 40;
+      const cy = 40 + i * 26;
+      this._cloud(ctx, cx, cy, 16 + i * 4);
+    }
+    // ferne Hügel
+    ctx.fillStyle = "rgba(255,255,255,.18)";
+    ctx.beginPath(); ctx.ellipse(W * 0.3, H * 0.64, W * 0.45, H * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(W * 0.78, H * 0.64, W * 0.4, H * 0.13, 0, 0, Math.PI * 2); ctx.fill();
     // Boden
     ctx.fillStyle = lg.ground;
-    ctx.fillRect(0, canvas.height * 0.62, canvas.width, canvas.height * 0.38);
-    // Kampfring
-    ctx.fillStyle = "#f2e2c0";
+    ctx.fillRect(0, H * 0.62, W, H * 0.38);
+    // Kampfring (mit weicher Kante)
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,.08)";
+    ctx.beginPath(); ctx.ellipse(W / 2, 258, 156, 74, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    const rg = ctx.createRadialGradient(W / 2, 240, 20, W / 2, 250, 160);
+    rg.addColorStop(0, "#fbf0d6"); rg.addColorStop(1, "#ecd8af");
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.ellipse(W / 2, 250, 150, 70, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#d9ad6f"; ctx.lineWidth = 5; ctx.stroke();
+  },
+
+  _cloud(ctx, x, y, r) {
     ctx.beginPath();
-    ctx.ellipse(canvas.width / 2, 250, 150, 70, 0, 0, Math.PI * 2);
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x + r, y + 4, r * 0.8, 0, Math.PI * 2);
+    ctx.arc(x - r * 0.9, y + 5, r * 0.7, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = "#d9ad6f";
-    ctx.lineWidth = 5;
-    ctx.stroke();
   },
 
   // KK-Wert über einem Kämpfer
@@ -461,7 +484,7 @@ const UI = {
 
     const result = Game.fight();
     const canvas = document.getElementById("league-canvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = this.prep(canvas);
     const me = Game.species();
     const opp = this.leagueOpponent;
     const start = performance.now();
@@ -471,8 +494,8 @@ const UI = {
 
     const animate = (now) => {
       const e = Math.min(1, (now - start) / dur);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      this.drawRing(ctx, canvas);
+      ctx.clearRect(0, 0, canvas._w, canvas._h);
+      this.drawRing(ctx, canvas, now);
 
       // Phase 1: beide holen aus & treffen (0..0.55)
       // Phase 2: Verlierer wird zurueckgeworfen (0.55..1)
@@ -720,10 +743,10 @@ const UI = {
       `<span>💎 +${r.gemReward}</span><span>🪙 +${r.coinReward}</span>`;
     // Sprite zeichnen
     const canvas = document.getElementById("retire-canvas");
-    const ctx = canvas.getContext("2d");
+    const ctx = this.prep(canvas);
     const draw = (now) => {
       if (this.current !== "retire") return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas._w, canvas._h);
       Creature.draw(ctx, { species: finalSp, stage: finalStage, cx: 120, cy: 110, scale: 1.3, facing: 1, t: now, pose: "win" });
       requestAnimationFrame(draw);
     };
@@ -747,13 +770,13 @@ const UI = {
   startLoops() {
     // Spielfeld-Kreatur dauerhaft rendern
     const homeCanvas = document.getElementById("home-creature");
-    const hctx = homeCanvas.getContext("2d");
+    const hctx = this.prep(homeCanvas);
     const render = (now) => {
       if (this.current === "home") {
-        hctx.clearRect(0, 0, homeCanvas.width, homeCanvas.height);
+        hctx.clearRect(0, 0, homeCanvas._w, homeCanvas._h);
         Creature.draw(hctx, {
           species: Game.species(), stage: Game.state.evoStage,
-          cx: homeCanvas.width / 2, cy: homeCanvas.height / 2,
+          cx: homeCanvas._w / 2, cy: homeCanvas._h / 2,
           scale: 1.7, facing: 1, t: now, pose: "idle",
         });
       }
@@ -783,11 +806,11 @@ const UI = {
 
   drawTitle() {
     const canvas = document.getElementById("title-creature");
-    const ctx = canvas.getContext("2d");
+    const ctx = this.prep(canvas);
     const sp = DATA.species[0];
     const draw = (now) => {
       if (this.current !== "title") return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas._w, canvas._h);
       Creature.draw(ctx, { species: sp, cx: 120, cy: 110, scale: 1.4, facing: 1, t: now, pose: "idle" });
       requestAnimationFrame(draw);
     };
@@ -795,6 +818,20 @@ const UI = {
   },
 
   /* ---------- Helfer ---------- */
+  // Canvas in Geräteauflösung (scharf auf Retina/Handy); liefert den Kontext
+  prep(canvas) {
+    if (canvas._w === undefined) { canvas._w = canvas._w; canvas._h = canvas._h; }
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const bw = Math.round(canvas._w * dpr), bh = Math.round(canvas._h * dpr);
+    if (canvas._w !== bw) {
+      canvas._w = bw; canvas._h = bh;
+      canvas.style.width = canvas._w + "px"; canvas.style.height = canvas._h + "px";
+    }
+    const ctx = this.prep(canvas);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return ctx;
+  },
+
   fmt(n) {
     n = Math.round(n);
     if (n >= 1e9) return (n / 1e9).toFixed(2) + "Mrd";
