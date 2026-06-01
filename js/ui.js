@@ -31,11 +31,14 @@ const UI = {
     if (name === "training") this.renderTraining();
     if (name === "shop") this.renderShop();
     if (name === "league") this.renderLeague();
+    if (name === "achievements") this.renderAchievements();
   },
 
   /* ---------- zentrale Klick-Verarbeitung ---------- */
   bindActions() {
     document.body.addEventListener("click", (e) => {
+      const tab = e.target.closest("[data-tab]");
+      if (tab) { Sound.play("click"); this.shopTab = tab.dataset.tab; this.renderShop(); return; }
       const el = e.target.closest("[data-action]");
       if (!el) return;
       const action = el.dataset.action;
@@ -52,6 +55,7 @@ const UI = {
       case "open-league": Sound.play("click"); this.show("league"); break;
       case "do-fight": this.runFight(); break;
       case "next-generation": this.doNextGeneration(); break;
+      case "open-achievements": Sound.play("click"); this.show("achievements"); break;
       case "close-popup": Sound.play("click"); document.getElementById("popup").classList.add("hidden"); break;
       case "toggle-mute": this.toggleMute(el); break;
     }
@@ -128,26 +132,27 @@ const UI = {
     const layer = document.getElementById("food-layer");
     if (layer.children.length >= 4) return; // nicht zu viele
     const choices = ["🍙", "🍓", "🫐", "🍯", "🥥"];
+    const golden = Math.random() < 0.08; // 8 % Glücks-Snack
     const el = document.createElement("div");
-    el.className = "food-item";
-    el.textContent = choices[Math.floor(Math.random() * choices.length)];
+    el.className = "food-item" + (golden ? " golden" : "");
+    el.textContent = golden ? "⭐" : choices[Math.floor(Math.random() * choices.length)];
     const arena = document.querySelector(".arena").getBoundingClientRect();
     const x = 30 + Math.random() * (arena.width - 90);
     const y = 60 + Math.random() * (arena.height * 0.45);
     el.style.left = x + "px";
     el.style.top = y + "px";
-    el.addEventListener("click", () => this.onEatFood(el, x, y));
+    el.addEventListener("click", () => this.onEatFood(el, x, y, golden));
     layer.appendChild(el);
-    // verschwindet nach einer Weile
-    setTimeout(() => { if (el.parentNode) el.remove(); }, 5000);
+    // Glücks-Snack verschwindet schneller (selteneres Zeitfenster)
+    setTimeout(() => { if (el.parentNode) el.remove(); }, golden ? 3200 : 5000);
   },
 
-  onEatFood(el, x, y) {
-    const res = Game.eat();
+  onEatFood(el, x, y, golden) {
+    const res = Game.eat(golden);
     el.remove();
     if (!res) return;
-    this.floatText("+" + this.fmt(res.gain) + " KK", x, y);
-    if (res.coin) this.floatText("🪙+1", x + 20, y - 20);
+    this.floatText((golden ? "⭐ +" : "+") + this.fmt(res.gain) + " KK", x, y);
+    if (res.coin) this.floatText("🪙+" + res.coin, x + 20, y - 20);
     Sound.play(res.coin ? "coin" : "eat");
     this.bumpCreature();
     this.refreshHome();
@@ -173,6 +178,7 @@ const UI = {
         Sound.play("levelup");
       }
     }
+    this.runAchievements();
     if (Game.atMaxLevel()) this.maybeOfferRetire();
   },
 
@@ -388,7 +394,8 @@ const UI = {
     this.leagueOpponent = boss
       ? DATA.species.filter(s => s.rarity === "episch")[Math.floor(Math.random() * 2)]
       : DATA.randomSpecies(Game.state.generation);
-    this.oppStage = boss ? 2 : Math.min(2, Game.stageForLevel(Game.state.level));
+    this.oppStage = boss ? 3 : Math.min(3, Game.stageForLevel(Game.state.level));
+    this._previewOppKK = Game.opponentKK();
     this.drawLeagueIdle();
   },
 
@@ -402,12 +409,25 @@ const UI = {
       this.drawRing(ctx, canvas);
       Creature.draw(ctx, { species: Game.species(), stage: Game.state.evoStage, cx: 110, cy: 220, scale: 1.1, facing: 1, t: now, pose: "idle" });
       Creature.draw(ctx, { species: this.leagueOpponent, stage: this.oppStage, cx: 250, cy: 220, scale: boss ? 1.25 : 1.1, facing: -1, t: now + 300, pose: "idle" });
+      this.drawKKTag(ctx, 110, 96, Game.state.kk, "#5fa030");
+      this.drawKKTag(ctx, 250, 96, this._previewOppKK || 0, boss ? "#d35e1a" : "#4aa3df");
       requestAnimationFrame(draw);
     };
     requestAnimationFrame(draw);
   },
 
   drawRing(ctx, canvas) {
+    const lg = Game.currentLeague();
+    // Himmel-Verlauf je Liga
+    const grd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    grd.addColorStop(0, lg.bg[0]);
+    grd.addColorStop(1, lg.bg[1]);
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Boden
+    ctx.fillStyle = lg.ground;
+    ctx.fillRect(0, canvas.height * 0.62, canvas.width, canvas.height * 0.38);
+    // Kampfring
     ctx.fillStyle = "#f2e2c0";
     ctx.beginPath();
     ctx.ellipse(canvas.width / 2, 250, 150, 70, 0, 0, Math.PI * 2);
@@ -415,6 +435,20 @@ const UI = {
     ctx.strokeStyle = "#d9ad6f";
     ctx.lineWidth = 5;
     ctx.stroke();
+  },
+
+  // KK-Wert über einem Kämpfer
+  drawKKTag(ctx, x, y, kk, color) {
+    ctx.save();
+    ctx.font = "bold 16px Trebuchet MS, sans-serif";
+    ctx.textAlign = "center";
+    const txt = "KK " + this.fmt(kk);
+    const w = ctx.measureText(txt).width + 16;
+    ctx.fillStyle = color;
+    this._roundRect(ctx, x - w / 2, y, w, 22, 11); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(txt, x, y + 16);
+    ctx.restore();
   },
 
   runFight() {
@@ -467,12 +501,42 @@ const UI = {
 
       Creature.draw(ctx, { species: me, stage: Game.state.evoStage, cx: myX, cy: 220, scale: 1.1, facing: 1, t: now, pose: myP, poseAmt: myAmt });
       Creature.draw(ctx, { species: opp, stage: this.oppStage, cx: oppX, cy: 220, scale: Game.isBossDuel() ? 1.25 : 1.1, facing: -1, t: now + 300, pose: oppP, poseAmt: oppAmt });
-      if (burst) Creature.burst(ctx, 180, 205, 1.5);
+      this.drawKKTag(ctx, 110, 96, result.myKK, "#5fa030");
+      this.drawKKTag(ctx, 250, 96, result.oppKK, Game.isBossDuel() ? "#d35e1a" : "#4aa3df");
+      if (burst) {
+        Creature.burst(ctx, 180, 205, 1.6);
+        // Trefferzahl beim Sieger-Schlag
+        ctx.save();
+        ctx.font = "900 26px Trebuchet MS, sans-serif";
+        ctx.textAlign = "center";
+        ctx.lineWidth = 4; ctx.strokeStyle = "#fff"; ctx.fillStyle = "#d35e1a";
+        const hit = result.win ? result.myKK : result.oppKK;
+        ctx.strokeText("-" + this.fmt(hit), 180, 175);
+        ctx.fillText("-" + this.fmt(hit), 180, 175);
+        ctx.restore();
+      }
 
       if (e < 1) requestAnimationFrame(animate);
       else { this._fightHit = false; this.finishFight(result); }
     };
     requestAnimationFrame(animate);
+  },
+
+  // Konfetti-Regen ueber der Buehne (Sieg)
+  confettiBurst(count = 40) {
+    const stage = document.getElementById("stage");
+    const colors = ["#f0792f", "#ffce4a", "#7bc043", "#4aa3df", "#e0608a", "#b88adf"];
+    for (let i = 0; i < count; i++) {
+      const c = document.createElement("div");
+      c.className = "confetti";
+      c.style.left = Math.random() * 100 + "%";
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.animationDelay = (Math.random() * 0.3) + "s";
+      c.style.animationDuration = (1 + Math.random() * 0.8) + "s";
+      c.style.transform = `rotate(${Math.random() * 360}deg)`;
+      stage.appendChild(c);
+      setTimeout(() => c.remove(), 2200);
+    }
   },
 
   flash(ctx, canvas) {
@@ -491,15 +555,18 @@ const UI = {
       const adv = Game.advanceDuel();
       if (adv.leagueCleared) {
         Sound.play("win");
+        this.confettiBurst(70);
         info.textContent = "🏆 Liga gewonnen!";
         this.popup("Liga gewonnen!",
           `Du steigst in eine höhere Liga auf!<br><br>` +
           `🪙 +${adv.reward.coin}` + (adv.reward.gem ? `  💎 +${adv.reward.gem}` : ""));
       } else {
         Sound.play("win");
+        this.confettiBurst(30);
         info.textContent = `Gewonnen! 🪙 +${adv.reward.coin}`;
       }
       this.refreshHome();
+      this.runAchievements();
       setTimeout(() => { if (this.current === "league") this.renderLeague(); }, 1200);
     } else {
       Sound.play("lose");
@@ -516,10 +583,20 @@ const UI = {
      SHOP
      ============================================================ */
   renderShop() {
+    if (!this.shopTab) this.shopTab = "upgrades";
     document.getElementById("shop-coins").textContent = this.fmt(Game.state.coins);
     document.getElementById("shop-gems").textContent = Game.state.gems;
+    // aktiven Tab markieren
+    document.querySelectorAll(".shop-tabs .tab[data-tab]").forEach(t => {
+      t.classList.toggle("active", t.dataset.tab === this.shopTab);
+    });
     const list = document.getElementById("shop-list");
     list.innerHTML = "";
+    if (this.shopTab === "items") this.renderShopItems(list);
+    else this.renderShopUpgrades(list);
+  },
+
+  renderShopUpgrades(list) {
     DATA.upgrades.forEach(u => {
       const lvl = Game.state.upgrades[u.id];
       const maxed = Game.upgradeMaxed(u.id);
@@ -536,12 +613,90 @@ const UI = {
         <div class="card-cost ${maxed ? "maxed" : ""}">${maxed ? "MAX" : "🪙 " + this.fmt(cost)}</div>`;
       if (!maxed && afford) {
         card.addEventListener("click", () => {
+          Sound.play("coin");
           const r = Game.buyUpgrade(u.id);
           if (r.ok) { this.renderShop(); this.refreshResourceBars(); }
         });
       }
       list.appendChild(card);
     });
+  },
+
+  renderShopItems(list) {
+    DATA.items.forEach(it => {
+      const bal = it.cur === "gem" ? Game.state.gems : Game.state.coins;
+      const afford = bal >= it.cost;
+      const card = document.createElement("div");
+      card.className = "card" + (afford ? "" : " disabled");
+      const costClass = it.cur === "gem" ? "gem" : "";
+      const costIcon = it.cur === "gem" ? "💎" : "🪙";
+      card.innerHTML = `
+        <div class="card-ico">${it.icon}</div>
+        <div class="card-main">
+          <div class="card-name">${it.name}</div>
+          <div class="card-desc">${it.desc}</div>
+        </div>
+        <div class="card-cost ${costClass}">${costIcon} ${it.cost}</div>`;
+      if (afford) {
+        card.addEventListener("click", () => {
+          const r = Game.buyItem(it.id);
+          if (r.ok) {
+            Sound.play(it.effect.type === "kkPct" ? "eat" : "click");
+            this.renderShop();
+            this.refreshResourceBars();
+            this.popup(it.name, r.info + "!");
+            this.checkProgress(r.leveled);
+            this.runAchievements();
+          }
+        });
+      }
+      list.appendChild(card);
+    });
+  },
+
+  /* ============================================================
+     ERFOLGE
+     ============================================================ */
+  renderAchievements() {
+    const list = document.getElementById("ach-list");
+    const have = Game.state.achievements;
+    document.getElementById("ach-count").textContent =
+      `${have.length}/${DATA.achievements.length}`;
+    list.innerHTML = "";
+    DATA.achievements.forEach(a => {
+      const done = have.includes(a.id);
+      const card = document.createElement("div");
+      card.className = "card " + (done ? "unlocked" : "locked");
+      card.innerHTML = `
+        <div class="card-ico">${done ? a.icon : "🔒"}</div>
+        <div class="card-main">
+          <div class="card-name">${a.name}</div>
+          <div class="card-desc">${a.desc}</div>
+          <div class="ach-gem">Belohnung: 💎 ${a.gem}</div>
+        </div>
+        <div class="card-cost ${done ? "" : "maxed"}">${done ? "✓" : "—"}</div>`;
+      list.appendChild(card);
+    });
+  },
+
+  // prueft & zeigt neu freigeschaltete Erfolge als Toast
+  runAchievements() {
+    const unlocked = Game.checkAchievements();
+    if (!unlocked.length) return;
+    this.refreshHome();
+    unlocked.forEach((a, i) => setTimeout(() => this.achToast(a), i * 1400));
+  },
+
+  achToast(a) {
+    Sound.play("levelup");
+    const stage = document.getElementById("stage");
+    const el = document.createElement("div");
+    el.className = "ach-toast";
+    el.innerHTML = `<span class="ach-toast-ico">${a.icon}</span>
+      <span><b>Erfolg freigeschaltet!</b><br>${a.name} · 💎 +${a.gem}</span>`;
+    stage.appendChild(el);
+    setTimeout(() => el.classList.add("show"), 30);
+    setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 400); }, 2600);
   },
 
   /* ============================================================
@@ -583,6 +738,7 @@ const UI = {
     this.popup("Neue Generation!",
       `Ein neuer Boxling ist da: <b>${DATA.formName(sp, 0)}</b>!<br>` +
       `Angriffsart: <b>${sp.move}</b> · Seltenheit: <b>${sp.rarity}</b>`);
+    this.runAchievements();
   },
 
   /* ============================================================

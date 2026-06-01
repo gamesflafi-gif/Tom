@@ -10,6 +10,7 @@ const Game = {
     const loaded = SAVE.load();
     if (loaded) {
       this.state = loaded;
+      this.migrate();        // fehlende Felder ergaenzen
       this.refillOverTime(); // offline nachwachsen lassen
     } else {
       this.state = this.freshState();
@@ -32,8 +33,46 @@ const Game = {
       food: DATA.config.foodMax,
       train: DATA.config.trainMax,
       upgrades: { food: 0, train: 0, foodcap: 0, traincap: 0 },
+      achievements: [],       // freigeschaltete Erfolgs-IDs
+      stats: {
+        duelsWon: 0, leaguesCleared: 0, evolutions: 0, snacksEaten: 0,
+        goldenEaten: 0, trainingsDone: 0, maxKK: DATA.config.baseKK,
+        maxRank: 1, maxStage: 0, generation: 1,
+      },
       lastTick: Date.now(),
     };
+  },
+
+  // sichert, dass aeltere Spielstaende die neuen Felder besitzen
+  migrate() {
+    const s = this.state;
+    if (!s.stats) s.stats = { duelsWon: 0, leaguesCleared: 0, evolutions: 0, snacksEaten: 0, goldenEaten: 0, trainingsDone: 0, maxKK: s.kk || 10, maxRank: s.rank || 1, maxStage: s.evoStage || 0, generation: s.generation || 1 };
+    if (!s.achievements) s.achievements = [];
+    if (s.evoStage == null) s.evoStage = 0;
+  },
+
+  // verfolgt Höchstwerte fuer Erfolge
+  trackStats() {
+    const s = this.state;
+    s.stats.maxKK = Math.max(s.stats.maxKK, s.kk);
+    s.stats.maxRank = Math.max(s.stats.maxRank, s.rank);
+    s.stats.maxStage = Math.max(s.stats.maxStage, s.evoStage);
+    s.stats.generation = Math.max(s.stats.generation, s.generation);
+  },
+
+  // prueft neue Erfolge, schaltet frei, vergibt Edelsteine
+  checkAchievements() {
+    this.trackStats();
+    const unlocked = [];
+    for (const a of DATA.achievements) {
+      if (!this.state.achievements.includes(a.id) && a.check(this.state.stats)) {
+        this.state.achievements.push(a.id);
+        this.state.gems += a.gem || 0;
+        unlocked.push(a);
+      }
+    }
+    if (unlocked.length) this.persist();
+    return unlocked;
   },
 
   persist() {
@@ -45,12 +84,12 @@ const Game = {
   species() { return DATA.speciesById(this.state.speciesId); },
   displayName() { return DATA.formName(this.species(), this.state.evoStage); },
 
-  // Stufe, die zum aktuellen Level passt (0,1,2)
+  // Stufe, die zum aktuellen Level passt (0..Anzahl Schwellen)
   stageForLevel(level) {
-    const lv = DATA.config.evolveLevels;
     let stage = 0;
-    if (level >= lv[0]) stage = 1;
-    if (level >= lv[1]) stage = 2;
+    for (const lv of DATA.config.evolveLevels) {
+      if (level >= lv) stage++;
+    }
     return stage;
   },
 
@@ -60,6 +99,7 @@ const Game = {
     if (target > this.state.evoStage) {
       const from = DATA.formName(this.species(), this.state.evoStage);
       this.state.evoStage = target;
+      this.state.stats.evolutions++;
       // kleiner KK-Schub bei Entwicklung
       this.state.kk = Math.round(this.state.kk * (1 + DATA.config.evolveBonus));
       this.recalcLevel();
@@ -120,14 +160,16 @@ const Game = {
   /* ---- Fuettern ---- */
   canEat() { return this.state.food > 0; },
 
-  eat() {
+  eat(golden = false) {
     if (this.state.food <= 0) return null;
     this.state.food--;
-    const gain = this.foodGain();
-    const coin = Math.random() < 0.25 ? 1 : 0;
+    let gain = this.foodGain();
+    let coin = Math.random() < 0.25 ? 1 : 0;
+    if (golden) { gain = Math.round(gain * 5); coin += 3; this.state.stats.goldenEaten++; }
     this.state.coins += coin;
+    this.state.stats.snacksEaten++;
     const leveled = this.addKK(gain);
-    return { gain, coin, leveled };
+    return { gain, coin, leveled, golden };
   },
 
   /* ---- Training ---- */
@@ -143,6 +185,7 @@ const Game = {
     const base = (tr.flat + tr.gainPct * this.state.kk) * upMult * this.species().mult;
     // Multiplikator aus dem Timing-Minispiel fliesst ein
     const gain = Math.max(1, Math.round(base * timingMult));
+    this.state.stats.trainingsDone++;
     const leveled = this.addKK(gain);
     return { gain, leveled, training: tr };
   },
@@ -180,10 +223,12 @@ const Game = {
   // nach gewonnenem Duell vorruecken
   advanceDuel() {
     const lg = this.currentLeague();
+    this.state.stats.duelsWon++;
     this.state.duelIndex++;
     let leagueCleared = false;
     let reward = { coin: 0, gem: 0 };
     if (this.state.duelIndex >= lg.duels) {
+      this.state.stats.leaguesCleared++;
       // Liga geschafft -> Belohnung + Rang hoch
       reward = { coin: lg.coin, gem: lg.gem };
       this.state.coins += lg.coin;
@@ -221,6 +266,29 @@ const Game = {
     this.state.upgrades[id]++;
     this.persist();
     return { ok: true, cost };
+  },
+
+  /* ---- Items kaufen & sofort anwenden ---- */
+  buyItem(id) {
+    const it = DATA.items.find(x => x.id === id);
+    if (!it) return { ok: false };
+    const bal = it.cur === "gem" ? this.state.gems : this.state.coins;
+    if (bal < it.cost) return { ok: false, reason: it.cur };
+    if (it.cur === "gem") this.state.gems -= it.cost; else this.state.coins -= it.cost;
+
+    let leveled = false, info = "";
+    const ef = it.effect;
+    if (ef.type === "kkPct") {
+      const gain = Math.max(1, Math.round(this.state.kk * ef.value));
+      leveled = this.addKK(gain);
+      info = `+${gain} KK`;
+    } else if (ef.type === "fillTrain") {
+      this.state.train = this.trainMax(); info = "Training aufgefüllt";
+    } else if (ef.type === "fillFood") {
+      this.state.food = this.foodMax(); info = "Futter aufgefüllt";
+    }
+    this.persist();
+    return { ok: true, leveled, info, item: it };
   },
 
   /* ---- Edelsteine: Vorraete auffuellen ---- */

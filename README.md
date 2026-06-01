@@ -29,10 +29,19 @@ eigenen Angriff – **Schlag** oder **Tritt**, je nach Art.
 
 - **Trainings-Minispiel** – Stoppe den Zeiger im grünen/goldenen Bereich für
   einen Treffer-Multiplikator (Perfekt ×1,7 · Gut ×1,1 · Daneben ×0,6).
-- **Entwicklungen** – Jede Art entwickelt sich bei Level 7 und 14 in eine
-  stärkere Form (eigenes Aussehen + KK-Schub), z. B. Pummel → Pummax → Pummalord.
+- **Entwicklungen (4 Stufen)** – Jede Art entwickelt sich bei Level 6, 12 und 18
+  in eine stärkere Form (eigenes Aussehen, Aura in der Endform, +15 % KK je Stufe),
+  z. B. Pummel → Pummax → Pummaron → Pummalord.
 - **Boss-Duelle** – Das letzte Duell jeder Liga ist ein deutlich stärkerer,
   voll entwickelter Boss mit größerer Belohnung.
+- **Erfolge** – 11 freischaltbare Erfolge (eigener Bildschirm) mit Edelstein-
+  Belohnung und Pop-up beim Freischalten.
+- **Items** – Verbrauchsgegenstände im Shop (Protein-Riegel, Energy-Drink,
+  Festmahl, Mega-Snack) für sofortige Effekte.
+- **Glücks-Snacks** – Goldene Snacks (⭐) erscheinen selten und geben das
+  5-fache an KK plus Bonus-Münzen.
+- **Liga-Optik** – Jede Liga hat einen eigenen Hintergrund; im Kampf werden
+  KK-Werte und Trefferzahlen angezeigt, bei Sieg regnet Konfetti.
 - **Sound & Musik** – Komplett per WebAudio **synthetisiert** (keine Audiodateien,
   keine Lizenz). Über 🔊 stumm schaltbar.
 - **PWA / installierbar** – Manifest + Service Worker, offline spielbar und

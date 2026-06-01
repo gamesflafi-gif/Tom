@@ -54,6 +54,20 @@ const Creature = {
     ctx.fill();
     ctx.restore();
 
+    // Aura der Endform (Stufe 3)
+    if (stage >= 3) {
+      const pulse = 0.5 + Math.sin(t / 260) * 0.5;
+      ctx.save();
+      const grd = ctx.createRadialGradient(0, 0, bodyW * 0.3, 0, 0, bodyW * 0.95);
+      grd.addColorStop(0, "rgba(255,210,74," + (0.05 + pulse * 0.12) + ")");
+      grd.addColorStop(1, "rgba(255,210,74,0)");
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(0, 0, bodyW * 0.95, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
     // Beine (zwei kleine Fuesse)
     const legY = bodyH * 0.45;
     const kickLeg = pose === "kick" ? amt : 0;

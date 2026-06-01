@@ -128,7 +128,22 @@
           <div class="shop-cur"><span>🪙 <b id="shop-coins">0</b></span> <span>💎 <b id="shop-gems">0</b></span></div>
         </header>
         <div class="shop-intro">Gib Münzen aus, um das Wachstum deines Boxlings zu fördern.</div>
+        <div class="shop-tabs">
+          <button class="tab active" data-tab="upgrades">Upgrades</button>
+          <button class="tab" data-tab="items">Items</button>
+          <button class="tab" data-action="open-achievements">🏅 Erfolge</button>
+        </div>
         <div id="shop-list" class="card-list"></div>
+      </section>
+
+      <!-- ===== Erfolge ===== -->
+      <section id="screen-achievements" class="screen">
+        <header class="sub-head">
+          <button class="btn btn-back" data-action="open-shop">‹ Zurück</button>
+          <h2>Erfolge</h2>
+          <div class="ach-count" id="ach-count">0/0</div>
+        </header>
+        <div id="ach-list" class="card-list"></div>
       </section>
 
       <!-- ===== Generationen-Uebergang ===== -->
