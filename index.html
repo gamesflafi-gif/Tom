@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#7ec8e3" />
+  <title>Boxli Brawl</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Spielflaeche, feste Hochkant-Buehne -->
+    <div id="stage">
+
+      <!-- ===== Titelbildschirm ===== -->
+      <section id="screen-title" class="screen active">
+        <div class="title-bg"></div>
+        <div class="title-logo">
+          <span class="logo-top">BOXLI</span>
+          <span class="logo-bottom">BRAWL</span>
+        </div>
+        <canvas id="title-creature" width="240" height="200"></canvas>
+        <button class="btn btn-play" data-action="start-game">Spielen</button>
+        <p class="title-credit">Ein originelles Aufzucht- &amp; Kampfspiel</p>
+      </section>
+
+      <!-- ===== Heim / Hauptbildschirm ===== -->
+      <section id="screen-home" class="screen">
+        <header class="hud">
+          <div class="hud-stat">
+            <div class="hud-gen" id="hud-gen">1. Generation</div>
+            <div class="hud-name"><span id="hud-species">Boxling</span> <span id="hud-move-badge" class="move-badge">Schlag</span></div>
+            <div class="hud-kk-row">
+              <span class="kk-label">KK</span>
+              <span class="kk-value" id="hud-kk">10</span>
+            </div>
+            <div class="lvl-row">
+              <span id="hud-level">Lv. 1/20</span>
+              <div class="lvl-bar"><div class="lvl-fill" id="hud-level-fill"></div></div>
+            </div>
+          </div>
+          <div class="hud-side">
+            <div class="rank-chip"><span class="rank-label">Rang</span> <span id="hud-rank">1</span></div>
+            <button class="btn btn-menu" data-action="open-shop">Menü</button>
+          </div>
+        </header>
+
+        <div class="arena">
+          <canvas id="home-creature" width="360" height="420"></canvas>
+          <div id="food-layer"></div>
+          <div id="float-layer"></div>
+        </div>
+
+        <div class="resource-bars">
+          <div class="res-bar food">
+            <span class="res-icon">🍙</span>
+            <div class="res-track"><div class="res-fill" id="food-fill"></div></div>
+            <span class="res-count" id="food-count">10/10</span>
+          </div>
+          <div class="res-bar train">
+            <span class="res-icon">🥊</span>
+            <div class="res-track"><div class="res-fill" id="train-fill"></div></div>
+            <span class="res-count" id="train-count">6/6</span>
+          </div>
+        </div>
+
+        <nav class="bottom-nav">
+          <button class="nav-btn" data-action="open-shop">
+            <span class="nav-ico">🏪</span><span>Stadt</span>
+          </button>
+          <button class="nav-btn nav-train" data-action="open-training">
+            <span class="nav-ico">🥊</span><span>Training</span>
+            <span class="nav-badge" id="train-badge">6</span>
+          </button>
+          <button class="nav-btn nav-league" data-action="open-league">
+            <span class="nav-ico">🏆</span><span>Liga</span>
+            <span class="nav-ready" id="league-ready">Bereit</span>
+          </button>
+        </nav>
+
+        <div class="currency-bar">
+          <span class="cur coin">🪙 <b id="hud-coins">0</b></span>
+          <span class="cur gem">💎 <b id="hud-gems">0</b></span>
+        </div>
+      </section>
+
+      <!-- ===== Training ===== -->
+      <section id="screen-training" class="screen">
+        <header class="sub-head">
+          <button class="btn btn-back" data-action="go-home">‹ Zurück</button>
+          <h2>Training</h2>
+          <div class="train-points">🥊 <span id="train-points-2">6/6</span></div>
+        </header>
+        <div class="train-intro">Wähle eine Einheit. Jede kostet 1 Trainingspunkt und steigert die Kampfkraft.</div>
+        <div id="training-list" class="card-list"></div>
+        <div id="training-stage" class="training-stage hidden">
+          <canvas id="training-canvas" width="360" height="320"></canvas>
+          <div class="training-result" id="training-result"></div>
+        </div>
+      </section>
+
+      <!-- ===== Liga ===== -->
+      <section id="screen-league" class="screen">
+        <header class="sub-head">
+          <button class="btn btn-back" data-action="go-home">‹ Zurück</button>
+          <h2 id="league-title">Anfänger-Liga</h2>
+          <div class="duel-no" id="duel-no">Duell 1/5</div>
+        </header>
+        <div class="league-arena">
+          <canvas id="league-canvas" width="360" height="360"></canvas>
+        </div>
+        <div class="league-info" id="league-info">Tritt gegen den Herausforderer an!</div>
+        <button class="btn btn-fight" id="btn-fight" data-action="do-fight">Kämpfen!</button>
+      </section>
+
+      <!-- ===== Shop / Stadt ===== -->
+      <section id="screen-shop" class="screen">
+        <header class="sub-head">
+          <button class="btn btn-back" data-action="go-home">‹ Zurück</button>
+          <h2>Stadt</h2>
+          <div class="shop-cur"><span>🪙 <b id="shop-coins">0</b></span> <span>💎 <b id="shop-gems">0</b></span></div>
+        </header>
+        <div class="shop-intro">Gib Münzen aus, um das Wachstum deines Boxlings zu fördern.</div>
+        <div id="shop-list" class="card-list"></div>
+      </section>
+
+      <!-- ===== Generationen-Uebergang ===== -->
+      <section id="screen-retire" class="screen">
+        <div class="retire-box">
+          <h2 id="retire-title">Generation abgeschlossen!</h2>
+          <canvas id="retire-canvas" width="240" height="200"></canvas>
+          <p id="retire-text"></p>
+          <div class="retire-rewards" id="retire-rewards"></div>
+          <button class="btn btn-play" data-action="next-generation">Nächste Generation</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- Allgemeines Popup -->
+    <div id="popup" class="popup hidden">
+      <div class="popup-card">
+        <div class="popup-title" id="popup-title">Ergebnis</div>
+        <div class="popup-body" id="popup-body"></div>
+        <button class="btn btn-ok" data-action="close-popup">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/creature.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
