@@ -820,15 +820,16 @@ const UI = {
   /* ---------- Helfer ---------- */
   // Canvas in Geräteauflösung (scharf auf Retina/Handy); liefert den Kontext
   prep(canvas) {
-    if (canvas._w === undefined) { canvas._w = canvas._w; canvas._h = canvas._h; }
+    // logische Maße einmalig aus den Attributen merken
+    if (canvas._w === undefined) { canvas._w = canvas.width; canvas._h = canvas.height; }
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const bw = Math.round(canvas._w * dpr), bh = Math.round(canvas._h * dpr);
-    if (canvas._w !== bw) {
-      canvas._w = bw; canvas._h = bh;
+    if (canvas.width !== bw) {
+      canvas.width = bw; canvas.height = bh;                       // Backing-Store in Geräteauflösung
       canvas.style.width = canvas._w + "px"; canvas.style.height = canvas._h + "px";
     }
-    const ctx = this.prep(canvas);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);                        // in logischen Pixeln zeichnen
     return ctx;
   },
 
