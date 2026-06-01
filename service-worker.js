@@ -1,5 +1,5 @@
 /* Boxli Brawl - Service Worker (Offline-Cache) */
-const CACHE = "boxli-brawl-v4";
+const CACHE = "boxli-brawl-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,6 +7,7 @@ const ASSETS = [
   "./manifest.json",
   "./assets/icon.svg",
   "./js/sound.js",
+  "./js/icons.js",
   "./js/data.js",
   "./js/save.js",
   "./js/creature.js",

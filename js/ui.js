@@ -14,10 +14,10 @@ const UI = {
     });
     this.bindActions();
     this.startLoops();
+    // statische Icons einsetzen
+    document.querySelectorAll("[data-ic]").forEach(el => { el.innerHTML = Icons.svg(el.dataset.ic); });
     // Mute-Buttons in Ausgangszustand bringen
-    document.querySelectorAll("[data-action='toggle-mute']").forEach(b => {
-      b.textContent = Sound.muted ? "🔇" : "🔊";
-    });
+    this.updateMuteButtons(Sound.muted);
     this.show("title");
     this.drawTitle();
   },
@@ -63,8 +63,12 @@ const UI = {
 
   toggleMute(el) {
     const muted = Sound.toggleMute();
+    this.updateMuteButtons(muted);
+  },
+
+  updateMuteButtons(muted) {
     document.querySelectorAll("[data-action='toggle-mute']").forEach(b => {
-      b.textContent = muted ? "🔇" : "🔊";
+      b.innerHTML = Icons.svg(muted ? "mute" : "sound");
     });
   },
 
@@ -79,7 +83,7 @@ const UI = {
     const layer = document.getElementById("float-layer");
     const el = document.createElement("div");
     el.className = "float-text";
-    el.textContent = txt;
+    el.innerHTML = txt;
     el.style.left = x + "px";
     el.style.top = y + "px";
     layer.appendChild(el);
@@ -131,11 +135,11 @@ const UI = {
     if (Game.state.food <= 0) return;
     const layer = document.getElementById("food-layer");
     if (layer.children.length >= 4) return; // nicht zu viele
-    const choices = ["🍙", "🍓", "🫐", "🍯", "🥥"];
+    const choices = ["rice", "berry", "blueberry", "honey", "coconut"];
     const golden = Math.random() < 0.08; // 8 % Glücks-Snack
     const el = document.createElement("div");
     el.className = "food-item" + (golden ? " golden" : "");
-    el.textContent = golden ? "⭐" : choices[Math.floor(Math.random() * choices.length)];
+    el.innerHTML = Icons.svg(golden ? "star" : choices[Math.floor(Math.random() * choices.length)]);
     const arena = document.querySelector(".arena").getBoundingClientRect();
     const x = 30 + Math.random() * (arena.width - 90);
     const y = 60 + Math.random() * (arena.height * 0.45);
@@ -151,8 +155,8 @@ const UI = {
     const res = Game.eat(golden);
     el.remove();
     if (!res) return;
-    this.floatText((golden ? "⭐ +" : "+") + this.fmt(res.gain) + " KK", x, y);
-    if (res.coin) this.floatText("🪙+" + res.coin, x + 20, y - 20);
+    this.floatText((golden ? Icons.svg("star") + " +" : "+") + this.fmt(res.gain) + " KK", x, y);
+    if (res.coin) this.floatText(Icons.svg("coin") + "+" + res.coin, x + 20, y - 20);
     Sound.play(res.coin ? "coin" : "eat");
     this.bumpCreature();
     this.refreshHome();
@@ -172,7 +176,7 @@ const UI = {
         Sound.play("evolve");
         this.refreshHome();
         this.popup("Entwicklung!",
-          `<b>${evo.from}</b> entwickelt sich zu <b>${evo.to}</b>! ✨<br>` +
+          `<b>${evo.from}</b> entwickelt sich zu <b>${evo.to}</b>! ${Icons.svg("sparkle")}<br>` +
           `Stärker und mit kräftigem KK-Schub.`);
       } else {
         Sound.play("levelup");
@@ -204,13 +208,13 @@ const UI = {
       const usable = Game.canTrain();
       card.className = "card" + (usable ? "" : " disabled");
       card.innerHTML = `
-        <div class="card-ico">${tr.icon}</div>
+        <div class="card-ico">${Icons.svg(tr.icon)}</div>
         <div class="card-main">
           <div class="card-name">${tr.name}</div>
           <div class="card-desc">${tr.desc}</div>
           <div class="card-desc">≈ +${this.fmt(est)} KK</div>
         </div>
-        <div class="card-cost">🥊 1</div>`;
+        <div class="card-cost">${Icons.svg("glove")} 1</div>`;
       if (usable) card.addEventListener("click", () => this.startTraining(tr.id));
       list.appendChild(card);
     });
@@ -218,10 +222,10 @@ const UI = {
       const note = document.createElement("div");
       note.className = "card disabled";
       const canBuy = Game.state.gems >= Game.refillTrainCost;
-      note.innerHTML = `<div class="card-ico">💎</div>
+      note.innerHTML = `<div class="card-ico">${Icons.svg("gem")}</div>
         <div class="card-main"><div class="card-name">Keine Trainingspunkte</div>
         <div class="card-desc">Sie wachsen mit der Zeit nach – oder fülle sofort auf.</div></div>
-        <div class="card-cost gem">💎 ${Game.refillTrainCost}</div>`;
+        <div class="card-cost gem">${Icons.svg("gem")} ${Game.refillTrainCost}</div>`;
       note.classList.toggle("disabled", !canBuy);
       if (canBuy) note.addEventListener("click", () => {
         if (Game.refillTrain()) { this.renderTraining(); this.refreshResourceBars(); }
@@ -384,7 +388,7 @@ const UI = {
     document.getElementById("duel-no").textContent =
       `Duell ${Game.state.duelIndex + 1}/${lg.duels}`;
     document.getElementById("league-info").innerHTML = boss
-      ? `<span style="color:#d35e1a">★ BOSS-DUELL ★</span> – der Champion dieser Liga!`
+      ? `<span style="color:#d35e1a">${Icons.svg("boss")} BOSS-DUELL ${Icons.svg("boss")}</span> – der Champion dieser Liga!`
       : "Alle warten auf das Startsignal!";
     const btn = document.getElementById("btn-fight");
     btn.disabled = false;
@@ -579,14 +583,14 @@ const UI = {
       if (adv.leagueCleared) {
         Sound.play("win");
         this.confettiBurst(70);
-        info.textContent = "🏆 Liga gewonnen!";
+        info.innerHTML = `${Icons.svg("trophy")} Liga gewonnen!`;
         this.popup("Liga gewonnen!",
           `Du steigst in eine höhere Liga auf!<br><br>` +
-          `🪙 +${adv.reward.coin}` + (adv.reward.gem ? `  💎 +${adv.reward.gem}` : ""));
+          `${Icons.svg("coin")} +${adv.reward.coin}` + (adv.reward.gem ? `  ${Icons.svg("gem")} +${adv.reward.gem}` : ""));
       } else {
         Sound.play("win");
         this.confettiBurst(30);
-        info.textContent = `Gewonnen! 🪙 +${adv.reward.coin}`;
+        info.innerHTML = `Gewonnen! ${Icons.svg("coin")} +${adv.reward.coin}`;
       }
       this.refreshHome();
       this.runAchievements();
@@ -628,12 +632,12 @@ const UI = {
       const card = document.createElement("div");
       card.className = "card" + ((maxed || !afford) ? " disabled" : "");
       card.innerHTML = `
-        <div class="card-ico">${u.icon}</div>
+        <div class="card-ico">${Icons.svg(u.icon)}</div>
         <div class="card-main">
           <div class="card-name">${u.name} <span style="color:#9a7a55;font-size:13px">Lv.${lvl}</span></div>
           <div class="card-desc">${u.desc}</div>
         </div>
-        <div class="card-cost ${maxed ? "maxed" : ""}">${maxed ? "MAX" : "🪙 " + this.fmt(cost)}</div>`;
+        <div class="card-cost ${maxed ? "maxed" : ""}">${maxed ? "MAX" : Icons.svg("coin") + " " + this.fmt(cost)}</div>`;
       if (!maxed && afford) {
         card.addEventListener("click", () => {
           Sound.play("coin");
@@ -652,9 +656,9 @@ const UI = {
       const card = document.createElement("div");
       card.className = "card" + (afford ? "" : " disabled");
       const costClass = it.cur === "gem" ? "gem" : "";
-      const costIcon = it.cur === "gem" ? "💎" : "🪙";
+      const costIcon = Icons.svg(it.cur === "gem" ? "gem" : "coin");
       card.innerHTML = `
-        <div class="card-ico">${it.icon}</div>
+        <div class="card-ico">${Icons.svg(it.icon)}</div>
         <div class="card-main">
           <div class="card-name">${it.name}</div>
           <div class="card-desc">${it.desc}</div>
@@ -691,13 +695,13 @@ const UI = {
       const card = document.createElement("div");
       card.className = "card " + (done ? "unlocked" : "locked");
       card.innerHTML = `
-        <div class="card-ico">${done ? a.icon : "🔒"}</div>
+        <div class="card-ico">${done ? Icons.svg(a.icon) : Icons.svg("lock")}</div>
         <div class="card-main">
           <div class="card-name">${a.name}</div>
           <div class="card-desc">${a.desc}</div>
-          <div class="ach-gem">Belohnung: 💎 ${a.gem}</div>
+          <div class="ach-gem">Belohnung: ${Icons.svg("gem")} ${a.gem}</div>
         </div>
-        <div class="card-cost ${done ? "" : "maxed"}">${done ? "✓" : "—"}</div>`;
+        <div class="card-cost ${done ? "" : "maxed"}">${done ? Icons.svg("check") : Icons.svg("dash")}</div>`;
       list.appendChild(card);
     });
   },
@@ -715,8 +719,8 @@ const UI = {
     const stage = document.getElementById("stage");
     const el = document.createElement("div");
     el.className = "ach-toast";
-    el.innerHTML = `<span class="ach-toast-ico">${a.icon}</span>
-      <span><b>Erfolg freigeschaltet!</b><br>${a.name} · 💎 +${a.gem}</span>`;
+    el.innerHTML = `<span class="ach-toast-ico">${Icons.svg(a.icon)}</span>
+      <span><b>Erfolg freigeschaltet!</b><br>${a.name} · ${Icons.svg("gem")} +${a.gem}</span>`;
     stage.appendChild(el);
     setTimeout(() => el.classList.add("show"), 30);
     setTimeout(() => { el.classList.remove("show"); setTimeout(() => el.remove(), 400); }, 2600);
@@ -739,8 +743,8 @@ const UI = {
       `Dein <b>${finalName}</b> hat das Maximum erreicht (KK ${this.fmt(r.finalKK)}).<br>` +
       `Es geht in den verdienten Ruhestand und übergibt seine Stärke an die nächste Generation.`;
     document.getElementById("retire-rewards").innerHTML =
-      `<span>📈 +${Math.round(r.earned * 100)}% Start-KK</span>` +
-      `<span>💎 +${r.gemReward}</span><span>🪙 +${r.coinReward}</span>`;
+      `<span>${Icons.svg("arrowup")} +${Math.round(r.earned * 100)}% Start-KK</span>` +
+      `<span>${Icons.svg("gem")} +${r.gemReward}</span><span>${Icons.svg("coin")} +${r.coinReward}</span>`;
     // Sprite zeichnen
     const canvas = document.getElementById("retire-canvas");
     const ctx = this.prep(canvas);
@@ -820,15 +824,16 @@ const UI = {
   /* ---------- Helfer ---------- */
   // Canvas in Geräteauflösung (scharf auf Retina/Handy); liefert den Kontext
   prep(canvas) {
-    if (canvas._w === undefined) { canvas._w = canvas._w; canvas._h = canvas._h; }
+    // logische Maße einmalig aus den Attributen merken
+    if (canvas._w === undefined) { canvas._w = canvas.width; canvas._h = canvas.height; }
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     const bw = Math.round(canvas._w * dpr), bh = Math.round(canvas._h * dpr);
-    if (canvas._w !== bw) {
-      canvas._w = bw; canvas._h = bh;
+    if (canvas.width !== bw) {
+      canvas.width = bw; canvas.height = bh;                       // Backing-Store in Geräteauflösung
       canvas.style.width = canvas._w + "px"; canvas.style.height = canvas._h + "px";
     }
-    const ctx = this.prep(canvas);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);                        // in logischen Pixeln zeichnen
     return ctx;
   },
 
