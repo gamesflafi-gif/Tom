@@ -26,7 +26,7 @@
         </div>
         <canvas id="title-creature" width="240" height="200"></canvas>
         <button class="btn btn-play" data-action="start-game">Spielen</button>
-        <button class="btn-mute" data-action="toggle-mute" title="Ton an/aus">🔊</button>
+        <button class="btn-mute" data-action="toggle-mute" title="Ton an/aus"></button>
         <p class="title-credit">Ein originelles Aufzucht- &amp; Kampfspiel</p>
       </section>
 
@@ -70,12 +70,12 @@
 
         <div class="resource-bars">
           <div class="res-bar food">
-            <span class="res-icon">🍙</span>
+            <span class="res-icon" data-ic="rice"></span>
             <div class="res-track"><div class="res-fill" id="food-fill"></div></div>
             <span class="res-count" id="food-count">10/10</span>
           </div>
           <div class="res-bar train">
-            <span class="res-icon">🥊</span>
+            <span class="res-icon" data-ic="glove"></span>
             <div class="res-track"><div class="res-fill" id="train-fill"></div></div>
             <span class="res-count" id="train-count">6/6</span>
           </div>
@@ -83,22 +83,22 @@
 
         <nav class="bottom-nav">
           <button class="nav-btn" data-action="open-shop">
-            <span class="nav-ico">🏪</span><span>Stadt</span>
+            <span class="nav-ico" data-ic="shop"></span><span>Stadt</span>
           </button>
           <button class="nav-btn nav-train" data-action="open-training">
-            <span class="nav-ico">🥊</span><span>Training</span>
+            <span class="nav-ico" data-ic="glove"></span><span>Training</span>
             <span class="nav-badge" id="train-badge">6</span>
           </button>
           <button class="nav-btn nav-league" data-action="open-league">
-            <span class="nav-ico">🏆</span><span>Liga</span>
+            <span class="nav-ico" data-ic="trophy"></span><span>Liga</span>
             <span class="nav-ready" id="league-ready">Bereit</span>
           </button>
         </nav>
 
         <div class="currency-bar">
-          <span class="cur coin">🪙 <b id="hud-coins">0</b></span>
-          <span class="cur gem">💎 <b id="hud-gems">0</b></span>
-          <button class="cur cur-mute" data-action="toggle-mute" title="Ton an/aus">🔊</button>
+          <span class="cur coin"><span data-ic="coin"></span> <b id="hud-coins">0</b></span>
+          <span class="cur gem"><span data-ic="gem"></span> <b id="hud-gems">0</b></span>
+          <button class="cur cur-mute" data-action="toggle-mute" title="Ton an/aus"></button>
         </div>
       </section>
 
@@ -107,7 +107,7 @@
         <header class="sub-head">
           <button class="btn btn-back" data-action="go-home">‹ Zurück</button>
           <h2>Training</h2>
-          <div class="train-points">🥊 <span id="train-points-2">6/6</span></div>
+          <div class="train-points"><span data-ic="glove"></span> <span id="train-points-2">6/6</span></div>
         </header>
         <div class="train-intro">Wähle eine Einheit. Jede kostet 1 Trainingspunkt und steigert die Kampfkraft.</div>
         <div id="training-list" class="card-list"></div>
@@ -136,13 +136,13 @@
         <header class="sub-head">
           <button class="btn btn-back" data-action="go-home">‹ Zurück</button>
           <h2>Stadt</h2>
-          <div class="shop-cur"><span>🪙 <b id="shop-coins">0</b></span> <span>💎 <b id="shop-gems">0</b></span></div>
+          <div class="shop-cur"><span><span data-ic="coin"></span> <b id="shop-coins">0</b></span> <span><span data-ic="gem"></span> <b id="shop-gems">0</b></span></div>
         </header>
         <div class="shop-intro">Gib Münzen aus, um das Wachstum deines Boxlings zu fördern.</div>
         <div class="shop-tabs">
           <button class="tab active" data-tab="upgrades">Upgrades</button>
           <button class="tab" data-tab="items">Items</button>
-          <button class="tab" data-action="open-achievements">🏅 Erfolge</button>
+          <button class="tab" data-action="open-achievements"><span data-ic="medal"></span> Erfolge</button>
         </div>
         <div id="shop-list" class="card-list"></div>
       </section>
@@ -180,6 +180,7 @@
   </div>
 
   <script src="js/sound.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/data.js"></script>
   <script src="js/save.js"></script>
   <script src="js/creature.js"></script>

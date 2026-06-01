@@ -60,10 +60,10 @@ DATA.formName = function (sp, stage) {
    gainPct: Anteil der aktuellen KK, der als Gewinn dient (vor Upgrades)
    flat: zusaetzlicher fixer Bonus                                          */
 DATA.trainings = [
-  { id: "boxsack",  name: "Boxsack-Schlag", icon: "🥊", gainPct: 0.06, flat: 30,  desc: "Solides Krafttraining am Sack." },
-  { id: "steine",   name: "Stein-Stoß",     icon: "🪨", gainPct: 0.09, flat: 50,  desc: "Schwere Steine umstoßen – harter Schub." },
-  { id: "sprint",   name: "Fluss-Sprint",   icon: "💨", gainPct: 0.04, flat: 80,  desc: "Ausdauerlauf für stetigen Zuwachs." },
-  { id: "fels",     name: "Fels-Tritt",     icon: "⛰️", gainPct: 0.13, flat: 70,  desc: "Riskant, aber starker Kampfkraft-Sprung." },
+  { id: "boxsack",  name: "Boxsack-Schlag", icon: "bag",      gainPct: 0.06, flat: 30,  desc: "Solides Krafttraining am Sack." },
+  { id: "steine",   name: "Stein-Stoß",     icon: "rock",     gainPct: 0.09, flat: 50,  desc: "Schwere Steine umstoßen – harter Schub." },
+  { id: "sprint",   name: "Fluss-Sprint",   icon: "wind",     gainPct: 0.04, flat: 80,  desc: "Ausdauerlauf für stetigen Zuwachs." },
+  { id: "fels",     name: "Fels-Tritt",     icon: "mountain", gainPct: 0.13, flat: 70,  desc: "Riskant, aber starker Kampfkraft-Sprung." },
 ];
 
 /* ---- Liga-Stufen (Raenge) ----
@@ -80,42 +80,42 @@ DATA.leagues = [
 /* ---- Shop-Upgrades ----
    level-basierte Upgrades; Kosten skalieren.                       */
 DATA.upgrades = [
-  { id: "food",  name: "Besseres Futter", icon: "🍙", cur: "coin",
+  { id: "food",  name: "Besseres Futter", icon: "rice", cur: "coin",
     desc: "Mehr KK pro Snack.", baseCost: 30, costFactor: 1.55, maxLvl: 30 },
-  { id: "train", name: "Härteres Training", icon: "🥊", cur: "coin",
+  { id: "train", name: "Härteres Training", icon: "glove", cur: "coin",
     desc: "Mehr KK pro Trainingseinheit.", baseCost: 50, costFactor: 1.6, maxLvl: 30 },
-  { id: "foodcap", name: "Größerer Futtervorrat", icon: "🧺", cur: "coin",
+  { id: "foodcap", name: "Größerer Futtervorrat", icon: "basket", cur: "coin",
     desc: "+2 maximale Futterpunkte.", baseCost: 80, costFactor: 1.8, maxLvl: 12 },
-  { id: "traincap", name: "Mehr Trainingsplätze", icon: "🏋️", cur: "coin",
+  { id: "traincap", name: "Mehr Trainingsplätze", icon: "dumbbell", cur: "coin",
     desc: "+1 maximaler Trainingspunkt.", baseCost: 150, costFactor: 2.0, maxLvl: 8 },
 ];
 
 /* ---- Items (Verbrauchsgegenstaende, Sofortwirkung) ---- */
 DATA.items = [
-  { id: "riegel", name: "Protein-Riegel", icon: "🍫", cur: "coin", cost: 60,
+  { id: "riegel", name: "Protein-Riegel", icon: "bar", cur: "coin", cost: 60,
     desc: "+25 % KK sofort.", effect: { type: "kkPct", value: 0.25 } },
-  { id: "drink",  name: "Energy-Drink",   icon: "🥤", cur: "coin", cost: 90,
+  { id: "drink",  name: "Energy-Drink",   icon: "drink", cur: "coin", cost: 90,
     desc: "Füllt alle Trainingspunkte auf.", effect: { type: "fillTrain" } },
-  { id: "platte", name: "Festmahl",       icon: "🍱", cur: "coin", cost: 70,
+  { id: "platte", name: "Festmahl",       icon: "bento", cur: "coin", cost: 70,
     desc: "Füllt den Futtervorrat auf.", effect: { type: "fillFood" } },
-  { id: "mega",   name: "Mega-Snack",     icon: "🌟", cur: "gem", cost: 2,
+  { id: "mega",   name: "Mega-Snack",     icon: "megastar", cur: "gem", cost: 2,
     desc: "+80 % KK sofort.", effect: { type: "kkPct", value: 0.8 } },
 ];
 
 /* ---- Erfolge ----
    check(s) bekommt das Statistik-Objekt aus dem Spielstand.       */
 DATA.achievements = [
-  { id: "first_win",  icon: "🥇", name: "Erster Sieg",       desc: "Gewinne dein erstes Duell.",        gem: 1, check: s => s.duelsWon >= 1 },
-  { id: "win10",      icon: "🏅", name: "Schlagfertig",      desc: "Gewinne 10 Duelle.",                gem: 1, check: s => s.duelsWon >= 10 },
-  { id: "win50",      icon: "🎖️", name: "Ringkönig",         desc: "Gewinne 50 Duelle.",                gem: 2, check: s => s.duelsWon >= 50 },
-  { id: "league1",    icon: "🏆", name: "Aufsteiger",        desc: "Schließe eine Liga ab.",            gem: 1, check: s => s.leaguesCleared >= 1 },
-  { id: "champion",   icon: "👑", name: "Champion",          desc: "Erreiche die Champion-Liga (Rang 6).", gem: 3, check: s => s.maxRank >= 6 },
-  { id: "evolve1",    icon: "✨", name: "Verwandlung",       desc: "Entwickle einen Boxling.",          gem: 1, check: s => s.evolutions >= 1 },
-  { id: "evolveMax",  icon: "🌠", name: "Endform",           desc: "Erreiche eine 4. Entwicklungsstufe.", gem: 2, check: s => s.maxStage >= 3 },
-  { id: "gen3",       icon: "🧬", name: "Dynastie",          desc: "Erreiche die 3. Generation.",       gem: 2, check: s => s.generation >= 3 },
-  { id: "kk10k",      icon: "💪", name: "Kraftpaket",        desc: "Erreiche 10.000 KK.",               gem: 2, check: s => s.maxKK >= 10000 },
-  { id: "feed100",    icon: "🍙", name: "Vielfraß",          desc: "Friss 100 Snacks.",                 gem: 1, check: s => s.snacksEaten >= 100 },
-  { id: "golden",     icon: "⭐", name: "Glückspilz",        desc: "Schnapp dir einen goldenen Snack.", gem: 1, check: s => s.goldenEaten >= 1 },
+  { id: "first_win",  icon: "medal",    name: "Erster Sieg",       desc: "Gewinne dein erstes Duell.",        gem: 1, check: s => s.duelsWon >= 1 },
+  { id: "win10",      icon: "glove",    name: "Schlagfertig",      desc: "Gewinne 10 Duelle.",                gem: 1, check: s => s.duelsWon >= 10 },
+  { id: "win50",      icon: "medal",    name: "Ringkönig",         desc: "Gewinne 50 Duelle.",                gem: 2, check: s => s.duelsWon >= 50 },
+  { id: "league1",    icon: "trophy",   name: "Aufsteiger",        desc: "Schließe eine Liga ab.",            gem: 1, check: s => s.leaguesCleared >= 1 },
+  { id: "champion",   icon: "crown",    name: "Champion",          desc: "Erreiche die Champion-Liga (Rang 6).", gem: 3, check: s => s.maxRank >= 6 },
+  { id: "evolve1",    icon: "sparkle",  name: "Verwandlung",       desc: "Entwickle einen Boxling.",          gem: 1, check: s => s.evolutions >= 1 },
+  { id: "evolveMax",  icon: "star",     name: "Endform",           desc: "Erreiche eine 4. Entwicklungsstufe.", gem: 2, check: s => s.maxStage >= 3 },
+  { id: "gen3",       icon: "dna",      name: "Dynastie",          desc: "Erreiche die 3. Generation.",       gem: 2, check: s => s.generation >= 3 },
+  { id: "kk10k",      icon: "muscle",   name: "Kraftpaket",        desc: "Erreiche 10.000 KK.",               gem: 2, check: s => s.maxKK >= 10000 },
+  { id: "feed100",    icon: "rice",     name: "Vielfraß",          desc: "Friss 100 Snacks.",                 gem: 1, check: s => s.snacksEaten >= 100 },
+  { id: "golden",     icon: "star",     name: "Glückspilz",        desc: "Schnapp dir einen goldenen Snack.", gem: 1, check: s => s.goldenEaten >= 1 },
 ];
 
 /* Hilfsfunktionen ----------------------------------------------- */

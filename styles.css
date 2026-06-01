@@ -18,6 +18,11 @@
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* eigene Symbole (Inline-SVG) */
+.ic { display: inline-block; width: 1em; height: 1em; vertical-align: -0.14em; }
+.card-ico .ic { width: 1em; height: 1em; }
+.food-item .ic { display: block; width: 1em; height: 1em; }
 html, body {
   margin: 0; height: 100%;
   font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
