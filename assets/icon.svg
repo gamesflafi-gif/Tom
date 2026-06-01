@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fd6f2"/>
+      <stop offset="1" stop-color="#c9efff"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#sky)"/>
+  <ellipse cx="256" cy="430" rx="150" ry="40" fill="rgba(60,40,20,.18)"/>
+  <!-- Koerper -->
+  <path d="M256 120 C 360 120 380 360 256 360 C 132 360 152 120 256 120 Z" fill="#ff9bbd" stroke="#e0608a" stroke-width="14"/>
+  <!-- Bauch -->
+  <ellipse cx="256" cy="270" rx="78" ry="70" fill="#ffd6e4"/>
+  <!-- Locke -->
+  <circle cx="256" cy="118" r="20" fill="#e0608a"/>
+  <!-- Augen -->
+  <circle cx="216" cy="220" r="26" fill="#fff"/>
+  <circle cx="296" cy="220" r="26" fill="#fff"/>
+  <circle cx="222" cy="226" r="12" fill="#3a2230"/>
+  <circle cx="302" cy="226" r="12" fill="#3a2230"/>
+  <!-- Augenbrauen kaempferisch -->
+  <path d="M192 196 L 234 206" stroke="#3a2230" stroke-width="10" stroke-linecap="round"/>
+  <path d="M320 196 L 278 206" stroke="#3a2230" stroke-width="10" stroke-linecap="round"/>
+  <!-- Grinsen -->
+  <path d="M226 268 Q 256 300 286 268" stroke="#3a2230" stroke-width="10" fill="none" stroke-linecap="round"/>
+  <!-- Fauste -->
+  <circle cx="150" cy="278" r="40" fill="#e0608a"/>
+  <circle cx="362" cy="262" r="44" fill="#e0608a"/>
+  <!-- kleine Schlag-Funken -->
+  <g fill="#fff3b0" stroke="#ff9b3d" stroke-width="6">
+    <path d="M408 230 l 14 -28 l 14 28 l 28 14 l -28 14 l -14 28 l -14 -28 l -28 -14 z"/>
+  </g>
+</svg>

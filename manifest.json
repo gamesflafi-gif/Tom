@@ -1,0 +1,19 @@
+{
+  "name": "Boxli Brawl",
+  "short_name": "Boxli",
+  "description": "Ziehe kleine Kämpfer-Kreaturen groß und tritt in Duellen an.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#8fd6f2",
+  "theme_color": "#f0792f",
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

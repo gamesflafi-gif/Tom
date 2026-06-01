@@ -1,0 +1,45 @@
+name: Deploy Boxli Brawl to GitHub Pages
+
+# Veroeffentlicht die statische Seite (Repo-Root) auf GitHub Pages.
+# Voraussetzung: In den Repo-Einstellungen unter "Pages" als Quelle
+# "GitHub Actions" auswaehlen (einmalig).
+
+on:
+  push:
+    branches:
+      - main
+      - claude/unlicensed-pokemon-game-iILAd
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Nur ein gleichzeitiges Deployment, laufende abbrechen
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # gesamtes Repo-Root (statische Dateien)
+          path: "."
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
