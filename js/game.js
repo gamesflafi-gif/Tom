@@ -22,6 +22,7 @@ const Game = {
       generation: 1,
       genBonus: 0,             // permanenter %-Bonus aus Renten (0.05 = +5%)
       speciesId: sp.id,
+      evoStage: 0,            // Entwicklungsstufe 0..2
       kk: DATA.config.baseKK,
       level: 1,
       rank: 1,
@@ -42,6 +43,32 @@ const Game = {
 
   /* ---- abgeleitete Werte ---- */
   species() { return DATA.speciesById(this.state.speciesId); },
+  displayName() { return DATA.formName(this.species(), this.state.evoStage); },
+
+  // Stufe, die zum aktuellen Level passt (0,1,2)
+  stageForLevel(level) {
+    const lv = DATA.config.evolveLevels;
+    let stage = 0;
+    if (level >= lv[0]) stage = 1;
+    if (level >= lv[1]) stage = 2;
+    return stage;
+  },
+
+  // prueft, ob eine Entwicklung faellig ist; gibt Info zurueck oder null
+  checkEvolution() {
+    const target = this.stageForLevel(this.state.level);
+    if (target > this.state.evoStage) {
+      const from = DATA.formName(this.species(), this.state.evoStage);
+      this.state.evoStage = target;
+      // kleiner KK-Schub bei Entwicklung
+      this.state.kk = Math.round(this.state.kk * (1 + DATA.config.evolveBonus));
+      this.recalcLevel();
+      const to = DATA.formName(this.species(), this.state.evoStage);
+      this.persist();
+      return { from, to, stage: target };
+    }
+    return null;
+  },
 
   foodMax()  { return DATA.config.foodMax + this.state.upgrades.foodcap * 2; },
   trainMax() { return DATA.config.trainMax + this.state.upgrades.traincap; },
@@ -106,7 +133,7 @@ const Game = {
   /* ---- Training ---- */
   canTrain() { return this.state.train > 0; },
 
-  doTraining(trainingId) {
+  doTraining(trainingId, timingMult = 1) {
     if (this.state.train <= 0) return null;
     const tr = DATA.trainings.find(t => t.id === trainingId);
     if (!tr) return null;
@@ -114,9 +141,8 @@ const Game = {
     const up = this.state.upgrades.train;
     const upMult = 1 + up * 0.25;
     const base = (tr.flat + tr.gainPct * this.state.kk) * upMult * this.species().mult;
-    // kleine Varianz fuer Spannung
-    const variance = 0.85 + Math.random() * 0.4;
-    const gain = Math.max(1, Math.round(base * variance));
+    // Multiplikator aus dem Timing-Minispiel fliesst ein
+    const gain = Math.max(1, Math.round(base * timingMult));
     const leveled = this.addKK(gain);
     return { gain, leveled, training: tr };
   },
@@ -124,11 +150,18 @@ const Game = {
   /* ---- Liga / Duelle ---- */
   currentLeague() { return DATA.leagueByRank(this.state.rank); },
 
+  // letztes Duell einer Liga = Boss
+  isBossDuel() {
+    const lg = this.currentLeague();
+    return this.state.duelIndex === lg.duels - 1;
+  },
+
   opponentKK() {
     const lg = this.currentLeague();
     // Gegner skaliert mit Liga-Faktor und Duell-Nummer
     const duelScale = 1 + this.state.duelIndex * 0.12;
-    const base = this.state.kk * lg.opp * duelScale;
+    let base = this.state.kk * lg.opp * duelScale;
+    if (this.isBossDuel()) base *= 1.45; // Boss ist deutlich staerker
     const variance = 0.9 + Math.random() * 0.3;
     return Math.max(5, Math.round(base * variance));
   },
@@ -219,6 +252,7 @@ const Game = {
     const newSp = DATA.randomSpecies(this.state.generation);
     this.state.generation++;
     this.state.speciesId = newSp.id;
+    this.state.evoStage = 0;
     this.state.kk = Math.round(DATA.config.baseKK * (1 + this.state.genBonus));
     this.state.level = 1;
     this.state.food = this.foodMax();

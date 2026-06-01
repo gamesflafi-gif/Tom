@@ -4,7 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#7ec8e3" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Boxli Brawl</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icon.svg" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -21,6 +26,7 @@
         </div>
         <canvas id="title-creature" width="240" height="200"></canvas>
         <button class="btn btn-play" data-action="start-game">Spielen</button>
+        <button class="btn-mute" data-action="toggle-mute" title="Ton an/aus">🔊</button>
         <p class="title-credit">Ein originelles Aufzucht- &amp; Kampfspiel</p>
       </section>
 
@@ -81,6 +87,7 @@
         <div class="currency-bar">
           <span class="cur coin">🪙 <b id="hud-coins">0</b></span>
           <span class="cur gem">💎 <b id="hud-gems">0</b></span>
+          <button class="cur cur-mute" data-action="toggle-mute" title="Ton an/aus">🔊</button>
         </div>
       </section>
 
@@ -146,6 +153,7 @@
     </div>
   </div>
 
+  <script src="js/sound.js"></script>
   <script src="js/data.js"></script>
   <script src="js/save.js"></script>
   <script src="js/creature.js"></script>

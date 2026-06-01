@@ -14,6 +14,10 @@ const UI = {
     });
     this.bindActions();
     this.startLoops();
+    // Mute-Buttons in Ausgangszustand bringen
+    document.querySelectorAll("[data-action='toggle-mute']").forEach(b => {
+      b.textContent = Sound.muted ? "🔇" : "🔊";
+    });
     this.show("title");
     this.drawTitle();
   },
@@ -41,15 +45,23 @@ const UI = {
 
   handle(action, el) {
     switch (action) {
-      case "start-game": this.show("home"); break;
-      case "go-home": this.show("home"); break;
-      case "open-shop": this.show("shop"); break;
-      case "open-training": this.show("training"); break;
-      case "open-league": this.show("league"); break;
+      case "start-game": Sound.play("click"); Sound.startMusic(); this.show("home"); break;
+      case "go-home": Sound.play("click"); this.show("home"); break;
+      case "open-shop": Sound.play("click"); this.show("shop"); break;
+      case "open-training": Sound.play("click"); this.show("training"); break;
+      case "open-league": Sound.play("click"); this.show("league"); break;
       case "do-fight": this.runFight(); break;
       case "next-generation": this.doNextGeneration(); break;
-      case "close-popup": document.getElementById("popup").classList.add("hidden"); break;
+      case "close-popup": Sound.play("click"); document.getElementById("popup").classList.add("hidden"); break;
+      case "toggle-mute": this.toggleMute(el); break;
     }
+  },
+
+  toggleMute(el) {
+    const muted = Sound.toggleMute();
+    document.querySelectorAll("[data-action='toggle-mute']").forEach(b => {
+      b.textContent = muted ? "🔇" : "🔊";
+    });
   },
 
   /* ---------- Popup ---------- */
@@ -77,7 +89,7 @@ const UI = {
     const st = Game.state;
     const sp = Game.species();
     document.getElementById("hud-gen").textContent = st.generation + ". Generation";
-    document.getElementById("hud-species").textContent = sp.name;
+    document.getElementById("hud-species").textContent = Game.displayName();
     const badge = document.getElementById("hud-move-badge");
     badge.textContent = sp.move;
     badge.classList.toggle("tritt", sp.move === "Tritt");
@@ -136,9 +148,10 @@ const UI = {
     if (!res) return;
     this.floatText("+" + this.fmt(res.gain) + " KK", x, y);
     if (res.coin) this.floatText("🪙+1", x + 20, y - 20);
+    Sound.play(res.coin ? "coin" : "eat");
     this.bumpCreature();
     this.refreshHome();
-    if (res.leveled) this.onLevelUp();
+    this.checkProgress(res.leveled);
   },
 
   bumpCreature() {
@@ -146,10 +159,21 @@ const UI = {
     c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake");
   },
 
-  onLevelUp() {
-    if (Game.atMaxLevel()) {
-      this.maybeOfferRetire();
+  // Nach einem KK-Gewinn: Level-up-Feedback, Entwicklung, evtl. Rente
+  checkProgress(leveled) {
+    if (leveled) {
+      const evo = Game.checkEvolution();
+      if (evo) {
+        Sound.play("evolve");
+        this.refreshHome();
+        this.popup("Entwicklung!",
+          `<b>${evo.from}</b> entwickelt sich zu <b>${evo.to}</b>! ✨<br>` +
+          `Stärker und mit kräftigem KK-Schub.`);
+      } else {
+        Sound.play("levelup");
+      }
     }
+    if (Game.atMaxLevel()) this.maybeOfferRetire();
   },
 
   maybeOfferRetire() {
@@ -181,7 +205,7 @@ const UI = {
           <div class="card-desc">≈ +${this.fmt(est)} KK</div>
         </div>
         <div class="card-cost">🥊 1</div>`;
-      if (usable) card.addEventListener("click", () => this.runTraining(tr.id));
+      if (usable) card.addEventListener("click", () => this.startTraining(tr.id));
       list.appendChild(card);
     });
     if (!Game.canTrain()) {
@@ -200,42 +224,145 @@ const UI = {
     }
   },
 
-  runTraining(id) {
-    const res = Game.doTraining(id);
-    if (!res) return;
+  // Startet das Timing-Minispiel fuer eine Trainingseinheit
+  startTraining(id) {
+    if (!Game.canTrain() || this._miniActive) return;
+    Sound.play("click");
+    this.pendingTraining = id;
     const list = document.getElementById("training-list");
     const stage = document.getElementById("training-stage");
     list.classList.add("hidden");
     stage.classList.remove("hidden");
-    document.getElementById("training-result").textContent = "";
+    document.getElementById("training-result").innerHTML =
+      `<span style="font-size:18px;color:#9a7a55">Tippe, wenn der Zeiger im <b style="color:#5fa030">grünen</b> Bereich ist!</span>`;
 
-    // Trainings-Animation: die Kreatur fuehrt ihren Angriff aus
+    // Ziel-Bereich zufaellig platzieren
+    this._miniActive = true;
+    this._miniTarget = 0.32 + Math.random() * 0.36; // 0.32..0.68
+    this._miniHalf = 0.13;
+    this._miniStart = performance.now();
+    this._miniSpeed = 0.0028 + Math.random() * 0.0006;
+
+    const stageEl = document.getElementById("training-stage");
+    this._miniTapHandler = () => this.resolveTraining();
+    stageEl.addEventListener("click", this._miniTapHandler);
+
+    this.animateMini();
+  },
+
+  miniPos(now) {
+    // oszilliert 0..1 (Dreieckswelle fuer gleichmaessige Geschwindigkeit)
+    const phase = ((now - this._miniStart) * this._miniSpeed) % 2;
+    return phase < 1 ? phase : 2 - phase;
+  },
+
+  animateMini() {
     const canvas = document.getElementById("training-canvas");
     const ctx = canvas.getContext("2d");
     const sp = Game.species();
-    const start = performance.now();
-    const dur = 1100;
     const pose = sp.move === "Tritt" ? "kick" : "punch";
+    const loop = (now) => {
+      if (!this._miniActive) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // leicht wippende Kreatur in Bereitschaft
+      Creature.draw(ctx, {
+        species: sp, stage: Game.state.evoStage,
+        cx: canvas.width / 2, cy: canvas.height / 2 - 10,
+        scale: 1.5, facing: 1, t: now, pose: "idle",
+      });
+      this.drawMiniBar(ctx, canvas, this.miniPos(now));
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  },
 
+  drawMiniBar(ctx, canvas, pos) {
+    const x0 = 30, x1 = canvas.width - 30, y = canvas.height - 40, h = 22;
+    const w = x1 - x0;
+    // Schiene
+    ctx.fillStyle = "#e9d8b6";
+    ctx.strokeStyle = "#d9ad6f";
+    ctx.lineWidth = 3;
+    this._roundRect(ctx, x0, y, w, h, 11); ctx.fill(); ctx.stroke();
+    // Ziel-Bereich
+    const tz0 = x0 + (this._miniTarget - this._miniHalf) * w;
+    const tzw = this._miniHalf * 2 * w;
+    ctx.fillStyle = "#7bc043";
+    this._roundRect(ctx, tz0, y, tzw, h, 11); ctx.fill();
+    // Perfekt-Kern
+    const pc0 = x0 + (this._miniTarget - this._miniHalf * 0.35) * w;
+    ctx.fillStyle = "#ffd24a";
+    this._roundRect(ctx, pc0, y, this._miniHalf * 0.7 * w, h, 8); ctx.fill();
+    // Zeiger
+    const mx = x0 + pos * w;
+    ctx.fillStyle = "#d35e1a";
+    ctx.beginPath();
+    ctx.moveTo(mx, y - 8); ctx.lineTo(mx - 8, y - 22); ctx.lineTo(mx + 8, y - 22);
+    ctx.closePath(); ctx.fill();
+    ctx.fillRect(mx - 2, y - 8, 4, h + 8);
+  },
+
+  _roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  },
+
+  resolveTraining() {
+    if (!this._miniActive) return;
+    this._miniActive = false;
+    const stageEl = document.getElementById("training-stage");
+    stageEl.removeEventListener("click", this._miniTapHandler);
+
+    const pos = this.miniPos(performance.now());
+    const dist = Math.abs(pos - this._miniTarget);
+    let mult, label, sfx;
+    if (dist < this._miniHalf * 0.35) { mult = 1.7; label = "PERFEKT!"; sfx = "perfect"; }
+    else if (dist < this._miniHalf)   { mult = 1.1; label = "Gut!";     sfx = "train"; }
+    else                              { mult = 0.6; label = "Daneben…";  sfx = "train"; }
+
+    const res = Game.doTraining(this.pendingTraining, mult);
+    if (!res) return;
+    Sound.play(sfx);
+    this.playTrainingHit(res, label);
+  },
+
+  playTrainingHit(res, label) {
+    const canvas = document.getElementById("training-canvas");
+    const ctx = canvas.getContext("2d");
+    const sp = Game.species();
+    const pose = sp.move === "Tritt" ? "kick" : "punch";
+    const start = performance.now();
+    const dur = 950;
+    let hitPlayed = false;
     const animate = (now) => {
       const e = Math.min(1, (now - start) / dur);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      // 3 Schlaege/Tritte
-      const phase = (e * 3) % 1;
+      const phase = (e * 2) % 1;
+      const amt = Math.sin(phase * Math.PI);
       Creature.draw(ctx, {
-        species: sp, cx: canvas.width / 2, cy: canvas.height / 2 + 20,
-        scale: 1.5, facing: 1, t: now, pose, poseAmt: Math.sin(phase * Math.PI),
+        species: sp, stage: Game.state.evoStage,
+        cx: canvas.width / 2 - 20, cy: canvas.height / 2 + 10,
+        scale: 1.5, facing: 1, t: now, pose, poseAmt: amt,
       });
+      if (amt > 0.7) {
+        Creature.burst(ctx, canvas.width / 2 + 70, canvas.height / 2, 1.1 + amt * 0.4);
+        if (!hitPlayed) { Sound.play("hit"); hitPlayed = true; }
+      }
       if (e < 1) requestAnimationFrame(animate);
       else {
-        document.getElementById("training-result").textContent =
-          `+${this.fmt(res.gain)} KK!`;
+        document.getElementById("training-result").innerHTML =
+          `<span style="color:#5fa030">${label}</span> +${this.fmt(res.gain)} KK!`;
         setTimeout(() => {
-          stage.classList.add("hidden");
+          document.getElementById("training-stage").classList.add("hidden");
           this.refreshResourceBars();
           this.renderTraining();
-          if (res.leveled && Game.atMaxLevel()) this.maybeOfferRetire();
-        }, 1100);
+          this.checkProgress(res.leveled);
+        }, 1050);
       }
     };
     requestAnimationFrame(animate);
@@ -246,28 +373,35 @@ const UI = {
      ============================================================ */
   renderLeague() {
     const lg = Game.currentLeague();
+    const boss = Game.isBossDuel();
     document.getElementById("league-title").textContent = lg.name;
     document.getElementById("duel-no").textContent =
       `Duell ${Game.state.duelIndex + 1}/${lg.duels}`;
-    document.getElementById("league-info").textContent =
-      "Alle warten auf das Startsignal!";
+    document.getElementById("league-info").innerHTML = boss
+      ? `<span style="color:#d35e1a">★ BOSS-DUELL ★</span> – der Champion dieser Liga!`
+      : "Alle warten auf das Startsignal!";
     const btn = document.getElementById("btn-fight");
     btn.disabled = false;
     const sp = Game.species();
     btn.textContent = sp.move === "Tritt" ? "Tritt zu!" : "Schlag zu!";
-    this.leagueOpponent = DATA.randomSpecies(Game.state.generation);
+    // Gegner: Boss ist stets episch und voll entwickelt
+    this.leagueOpponent = boss
+      ? DATA.species.filter(s => s.rarity === "episch")[Math.floor(Math.random() * 2)]
+      : DATA.randomSpecies(Game.state.generation);
+    this.oppStage = boss ? 2 : Math.min(2, Game.stageForLevel(Game.state.level));
     this.drawLeagueIdle();
   },
 
   drawLeagueIdle() {
     const canvas = document.getElementById("league-canvas");
     const ctx = canvas.getContext("2d");
+    const boss = Game.isBossDuel();
     const draw = (now) => {
       if (this.current !== "league" || this._leagueFighting) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       this.drawRing(ctx, canvas);
-      Creature.draw(ctx, { species: Game.species(), cx: 110, cy: 220, scale: 1.1, facing: 1, t: now, pose: "idle" });
-      Creature.draw(ctx, { species: this.leagueOpponent, cx: 250, cy: 220, scale: 1.1, facing: -1, t: now + 300, pose: "idle" });
+      Creature.draw(ctx, { species: Game.species(), stage: Game.state.evoStage, cx: 110, cy: 220, scale: 1.1, facing: 1, t: now, pose: "idle" });
+      Creature.draw(ctx, { species: this.leagueOpponent, stage: this.oppStage, cx: 250, cy: 220, scale: boss ? 1.25 : 1.1, facing: -1, t: now + 300, pose: "idle" });
       requestAnimationFrame(draw);
     };
     requestAnimationFrame(draw);
@@ -289,6 +423,7 @@ const UI = {
     const btn = document.getElementById("btn-fight");
     btn.disabled = true;
     document.getElementById("league-info").textContent = "Kampf läuft...";
+    Sound.play("click");
 
     const result = Game.fight();
     const canvas = document.getElementById("league-canvas");
@@ -310,13 +445,15 @@ const UI = {
       let myX = 110, oppX = 250;
       let myP = "idle", oppP = "idle", myAmt = 0, oppAmt = 0;
 
+      let burst = false;
       if (e < 0.55) {
         const a = e / 0.55;
         const lunge = Math.sin(a * Math.PI) * 28;
         myX = 110 + lunge; oppX = 250 - lunge;
         myP = myPose; oppP = oppPose;
         myAmt = Math.sin(a * Math.PI); oppAmt = Math.sin(a * Math.PI);
-        if (a > 0.45 && a < 0.6) this.flash(ctx, canvas);
+        if (a > 0.45 && a < 0.62) { this.flash(ctx, canvas); burst = true; }
+        if (a > 0.45 && !this._fightHit) { Sound.play("hit"); this._fightHit = true; }
       } else {
         const a = (e - 0.55) / 0.45;
         if (result.win) {
@@ -328,11 +465,12 @@ const UI = {
         }
       }
 
-      Creature.draw(ctx, { species: me, cx: myX, cy: 220, scale: 1.1, facing: 1, t: now, pose: myP, poseAmt: myAmt });
-      Creature.draw(ctx, { species: opp, cx: oppX, cy: 220, scale: 1.1, facing: -1, t: now + 300, pose: oppP, poseAmt: oppAmt });
+      Creature.draw(ctx, { species: me, stage: Game.state.evoStage, cx: myX, cy: 220, scale: 1.1, facing: 1, t: now, pose: myP, poseAmt: myAmt });
+      Creature.draw(ctx, { species: opp, stage: this.oppStage, cx: oppX, cy: 220, scale: Game.isBossDuel() ? 1.25 : 1.1, facing: -1, t: now + 300, pose: oppP, poseAmt: oppAmt });
+      if (burst) Creature.burst(ctx, 180, 205, 1.5);
 
       if (e < 1) requestAnimationFrame(animate);
-      else this.finishFight(result);
+      else { this._fightHit = false; this.finishFight(result); }
     };
     requestAnimationFrame(animate);
   },
@@ -352,16 +490,19 @@ const UI = {
     if (result.win) {
       const adv = Game.advanceDuel();
       if (adv.leagueCleared) {
+        Sound.play("win");
         info.textContent = "🏆 Liga gewonnen!";
         this.popup("Liga gewonnen!",
           `Du steigst in eine höhere Liga auf!<br><br>` +
           `🪙 +${adv.reward.coin}` + (adv.reward.gem ? `  💎 +${adv.reward.gem}` : ""));
       } else {
+        Sound.play("win");
         info.textContent = `Gewonnen! 🪙 +${adv.reward.coin}`;
       }
       this.refreshHome();
       setTimeout(() => { if (this.current === "league") this.renderLeague(); }, 1200);
     } else {
+      Sound.play("lose");
       info.textContent = "Verloren... versuch es nochmal!";
       this.drawLeagueIdle();
       const btn = document.getElementById("btn-fight");
@@ -407,13 +548,17 @@ const UI = {
      GENERATION / RENTE
      ============================================================ */
   showRetire() {
+    const finalStage = Game.state.evoStage;
+    const finalName = Game.displayName();
+    const finalSp = Game.species();
     const r = Game.retire();
     Game.persist();
+    Sound.play("win");
     this.show("retire");
     document.getElementById("retire-title").textContent =
       `${Game.state.generation}. Generation – Bestleistung!`;
     document.getElementById("retire-text").innerHTML =
-      `Dein <b>${Game.species().name}</b> hat das Maximum erreicht (KK ${this.fmt(r.finalKK)}).<br>` +
+      `Dein <b>${finalName}</b> hat das Maximum erreicht (KK ${this.fmt(r.finalKK)}).<br>` +
       `Es geht in den verdienten Ruhestand und übergibt seine Stärke an die nächste Generation.`;
     document.getElementById("retire-rewards").innerHTML =
       `<span>📈 +${Math.round(r.earned * 100)}% Start-KK</span>` +
@@ -424,7 +569,7 @@ const UI = {
     const draw = (now) => {
       if (this.current !== "retire") return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      Creature.draw(ctx, { species: Game.species(), cx: 120, cy: 110, scale: 1.3, facing: 1, t: now, pose: "win" });
+      Creature.draw(ctx, { species: finalSp, stage: finalStage, cx: 120, cy: 110, scale: 1.3, facing: 1, t: now, pose: "win" });
       requestAnimationFrame(draw);
     };
     requestAnimationFrame(draw);
@@ -433,9 +578,10 @@ const UI = {
   doNextGeneration() {
     const sp = Game.nextGeneration();
     this._retireShown = false;
+    Sound.play("levelup");
     this.show("home");
     this.popup("Neue Generation!",
-      `Ein neuer Boxling ist da: <b>${sp.name}</b>!<br>` +
+      `Ein neuer Boxling ist da: <b>${DATA.formName(sp, 0)}</b>!<br>` +
       `Angriffsart: <b>${sp.move}</b> · Seltenheit: <b>${sp.rarity}</b>`);
   },
 
@@ -450,7 +596,7 @@ const UI = {
       if (this.current === "home") {
         hctx.clearRect(0, 0, homeCanvas.width, homeCanvas.height);
         Creature.draw(hctx, {
-          species: Game.species(),
+          species: Game.species(), stage: Game.state.evoStage,
           cx: homeCanvas.width / 2, cy: homeCanvas.height / 2,
           scale: 1.7, facing: 1, t: now, pose: "idle",
         });

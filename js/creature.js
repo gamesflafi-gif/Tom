@@ -18,7 +18,9 @@ const Creature = {
     const sp = opts.species;
     const p = sp.palette;
     const cx = opts.cx, cy = opts.cy;
-    const s = opts.scale || 1;
+    const stage = opts.stage || 0;
+    // hoehere Entwicklungsstufe -> etwas groesser
+    const s = (opts.scale || 1) * (1 + stage * 0.12);
     const face = opts.facing || 1;
     const t = opts.t || 0;
     const pose = opts.pose || "idle";
@@ -80,9 +82,40 @@ const Creature = {
     // Gesicht
     this._face(ctx, bodyW, bodyH, p, pose, amt, s, t);
 
-    // kleines Art-Detail oben (Stachel / Tuff)
-    this._crest(ctx, sp, bodyW, bodyH, p, s);
+    // kleines Art-Detail oben (Stachel / Tuff), waechst mit Stufe
+    this._crest(ctx, sp, bodyW, bodyH, p, s, stage);
 
+    // ab Stufe 1: kleine "Bandage"/Gurt als Kampfabzeichen
+    if (stage >= 1) {
+      ctx.strokeStyle = stage >= 2 ? "#ffd24a" : "#e8e8e8";
+      ctx.lineWidth = 5 * s;
+      ctx.beginPath();
+      ctx.moveTo(-bodyW * 0.42, bodyH * 0.02);
+      ctx.lineTo(bodyW * 0.42, bodyH * 0.14);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  },
+
+  // Treffer-Funken / Aufschlag-Effekt
+  burst(ctx, x, y, scale = 1, color = "#fff3b0") {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "#ff9b3d";
+    ctx.lineWidth = 2;
+    const spikes = 8;
+    ctx.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+      const r = (i % 2 === 0 ? 22 : 9) * scale;
+      const a = (i / (spikes * 2)) * Math.PI * 2;
+      const px = Math.cos(a) * r, py = Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
   },
 
@@ -179,27 +212,32 @@ const Creature = {
     }
   },
 
-  _crest(ctx, sp, w, h, p, s) {
+  _crest(ctx, sp, w, h, p, s, stage = 0) {
     ctx.fillStyle = p.accent;
+    const grow = 1 + stage * 0.35; // Kamm waechst mit Entwicklung
     if (sp.shape === "tall" || sp.id === "stachu") {
-      // Stachel
-      ctx.beginPath();
-      ctx.moveTo(-10 * s, -h * 0.5);
-      ctx.lineTo(0, -h * 0.5 - 22 * s);
-      ctx.lineTo(10 * s, -h * 0.5);
-      ctx.closePath();
-      ctx.fill();
+      // Stachel(n) - mehr Spitzen bei hoeherer Stufe
+      const n = 1 + stage;
+      for (let k = 0; k < n; k++) {
+        const ox = (k - (n - 1) / 2) * 16 * s;
+        ctx.beginPath();
+        ctx.moveTo(ox - 10 * s, -h * 0.5);
+        ctx.lineTo(ox, -h * 0.5 - 22 * s * grow);
+        ctx.lineTo(ox + 10 * s, -h * 0.5);
+        ctx.closePath();
+        ctx.fill();
+      }
     } else if (sp.shape === "wide") {
-      // kleiner Tuff
+      // Tuff
       for (let i = -1; i <= 1; i++) {
         ctx.beginPath();
-        ctx.arc(i * 12 * s, -h * 0.5 + 2, 7 * s, 0, Math.PI * 2);
+        ctx.arc(i * 12 * s, -h * 0.5 + 2, 7 * s * grow, 0, Math.PI * 2);
         ctx.fill();
       }
     } else {
       // Locke
       ctx.beginPath();
-      ctx.arc(0, -h * 0.5 - 6 * s, 8 * s, 0, Math.PI * 2);
+      ctx.arc(0, -h * 0.5 - 6 * s * grow, 8 * s * grow, 0, Math.PI * 2);
       ctx.fill();
     }
   },

@@ -25,6 +25,19 @@ eigenen Angriff – **Schlag** oder **Tritt**, je nach Art.
 6. **Stadt/Shop** – Gib Münzen für dauerhafte Upgrades aus (besseres Futter,
    härteres Training, größere Vorräte). 💎 Edelsteine füllen Vorräte sofort auf.
 
+### Weitere Features
+
+- **Trainings-Minispiel** – Stoppe den Zeiger im grünen/goldenen Bereich für
+  einen Treffer-Multiplikator (Perfekt ×1,7 · Gut ×1,1 · Daneben ×0,6).
+- **Entwicklungen** – Jede Art entwickelt sich bei Level 7 und 14 in eine
+  stärkere Form (eigenes Aussehen + KK-Schub), z. B. Pummel → Pummax → Pummalord.
+- **Boss-Duelle** – Das letzte Duell jeder Liga ist ein deutlich stärkerer,
+  voll entwickelter Boss mit größerer Belohnung.
+- **Sound & Musik** – Komplett per WebAudio **synthetisiert** (keine Audiodateien,
+  keine Lizenz). Über 🔊 stumm schaltbar.
+- **PWA / installierbar** – Manifest + Service Worker, offline spielbar und
+  als App auf dem Homescreen installierbar.
+
 ## Kreaturen-Arten
 
 | Art | Angriff | Seltenheit |
@@ -61,20 +74,23 @@ Zum Zurücksetzen in der Browser-Konsole `resetGame()` ausführen.
 ## Projektstruktur
 
 ```
-index.html        Bühne & Bildschirme
-styles.css        Look & Feel
-js/data.js        Spieldaten (Arten, Trainings, Ligen, Upgrades)
-js/save.js        Speichern/Laden (localStorage)
-js/creature.js    Kreaturen per Code zeichnen + Posen/Animationen
-js/game.js        Kernlogik & Spielzustand
-js/ui.js          Bildschirme, Events, Render-Loop
-js/main.js        Einstiegspunkt
+index.html          Bühne & Bildschirme
+styles.css          Look & Feel
+manifest.json       PWA-Manifest
+service-worker.js   Offline-Cache
+assets/icon.svg     App-Icon (eigene Grafik)
+js/sound.js         Sound & Musik (WebAudio-Synthese)
+js/data.js          Spieldaten (Arten, Trainings, Ligen, Upgrades)
+js/save.js          Speichern/Laden (localStorage)
+js/creature.js      Kreaturen per Code zeichnen + Posen/Effekte
+js/game.js          Kernlogik & Spielzustand
+js/ui.js            Bildschirme, Events, Minispiel, Render-Loop
+js/main.js          Einstiegspunkt
 ```
 
 ## Roadmap-Ideen
 
-- Sound & Musik
-- Mehr Trainings-Minispiele (statt Auto-Animation)
-- Items/Ausrüstung, Gegner-Bosse, Events
-- Mehr Arten & Entwicklungen
-- PWA / Installierbar machen
+- Weitere Trainings-Minispiele (Varianten je Einheit)
+- Items/Ausrüstung & besondere Events
+- Noch mehr Arten und ein viertes Entwicklungs-Tier
+- Bestenliste / Erfolge

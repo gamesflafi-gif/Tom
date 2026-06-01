@@ -16,6 +16,8 @@ DATA.config = {
   trainMax: 6,           // max. Trainingspunkte
   trainRefillSec: 90,    // Sekunden pro nachwachsendem Trainingspunkt
   foodSpawnSec: 1.6,     // Sekunden zwischen erscheinenden Snacks
+  evolveLevels: [7, 14], // Level, bei denen sich die Kreatur entwickelt
+  evolveBonus: 0.12,     // KK-Bonus pro Entwicklung (+12%)
 };
 
 /* ---- Kreaturen-Arten ("Boxlinge") ----
@@ -23,23 +25,36 @@ DATA.config = {
    palette: Farben fuer das per-Code gezeichnete Sprite
    mult: Multiplikator auf KK-Gewinne (Seltenheit)            */
 DATA.species = [
-  { id: "pummel",  name: "Pummel",   move: "Schlag", shape: "round", mult: 1.00, rarity: "normal",
+  { id: "pummel",  move: "Schlag", shape: "round", mult: 1.00, rarity: "normal",
+    forms: ["Pummel", "Pummax", "Pummalord"],
     palette: { body: "#ff9bbd", belly: "#ffd6e4", accent: "#e0608a", eye: "#3a2230" } },
-  { id: "knuffo",  name: "Knuffo",   move: "Schlag", shape: "wide",  mult: 1.05, rarity: "normal",
+  { id: "knuffo",  move: "Schlag", shape: "wide",  mult: 1.05, rarity: "normal",
+    forms: ["Knuffo", "Knuffax", "Knuffaron"],
     palette: { body: "#9ad36a", belly: "#d7f0bf", accent: "#5fa030", eye: "#243018" } },
-  { id: "wolki",   name: "Wolki",    move: "Tritt",  shape: "round", mult: 1.05, rarity: "normal",
+  { id: "wolki",   move: "Tritt",  shape: "round", mult: 1.05, rarity: "normal",
+    forms: ["Wolki", "Wolkron", "Wolkanos"],
     palette: { body: "#e8eef5", belly: "#ffffff", accent: "#a9bccd", eye: "#33424f" } },
-  { id: "flammo",  name: "Flammo",   move: "Tritt",  shape: "tall",  mult: 1.12, rarity: "selten",
+  { id: "flammo",  move: "Tritt",  shape: "tall",  mult: 1.12, rarity: "selten",
+    forms: ["Flammo", "Flammar", "Flammgolt"],
     palette: { body: "#ff8a3d", belly: "#ffd9a8", accent: "#d35e1a", eye: "#3a2210" } },
-  { id: "aquino",  name: "Aquino",   move: "Schlag", shape: "tall",  mult: 1.12, rarity: "selten",
+  { id: "aquino",  move: "Schlag", shape: "tall",  mult: 1.12, rarity: "selten",
+    forms: ["Aquino", "Aquaron", "Aquagant"],
     palette: { body: "#5fbef0", belly: "#cdeeff", accent: "#2f8fcc", eye: "#1c3a4a" } },
-  { id: "stachu",  name: "Stachu",   move: "Tritt",  shape: "round", mult: 1.18, rarity: "selten",
+  { id: "stachu",  move: "Tritt",  shape: "round", mult: 1.18, rarity: "selten",
+    forms: ["Stachu", "Stachor", "Stacharon"],
     palette: { body: "#b88adf", belly: "#e8d4f5", accent: "#7e4fb0", eye: "#2e1f3a" } },
-  { id: "golbax",  name: "Golbax",   move: "Schlag", shape: "wide",  mult: 1.30, rarity: "episch",
+  { id: "golbax",  move: "Schlag", shape: "wide",  mult: 1.30, rarity: "episch",
+    forms: ["Golbax", "Golbaron", "Golbarex"],
     palette: { body: "#ffce4a", belly: "#fff0bf", accent: "#d9a51f", eye: "#3a2c08" } },
-  { id: "nachti",  name: "Nachti",   move: "Tritt",  shape: "tall",  mult: 1.35, rarity: "episch",
+  { id: "nachti",  move: "Tritt",  shape: "tall",  mult: 1.35, rarity: "episch",
+    forms: ["Nachti", "Nachtaron", "Nachtgeist"],
     palette: { body: "#5566a8", belly: "#aab4dd", accent: "#34406f", eye: "#e8e8ff" } },
 ];
+
+// Name der aktuellen Entwicklungsstufe (0..2)
+DATA.formName = function (sp, stage) {
+  return (sp.forms && sp.forms[stage]) || (sp.forms ? sp.forms[0] : sp.id);
+};
 
 /* ---- Trainings ----
    gainPct: Anteil der aktuellen KK, der als Gewinn dient (vor Upgrades)
