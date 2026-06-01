@@ -48,7 +48,7 @@ html, body {
   box-shadow: 0 4px 0 var(--shadow); transition: transform .05s, box-shadow .05s;
 }
 .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--shadow); }
-.btn-play { background: var(--green-btn); box-shadow: 0 5px 0 var(--green-btn-dark); font-size: 26px; padding: 16px 60px; border-radius: 28px; }
+.btn-play { background: var(--green-btn); box-shadow: 0 5px 0 var(--green-btn-dark); font-size: 26px; padding: 16px 60px; border-radius: 28px; position: relative; z-index: 3; }
 .btn-menu { background: var(--wood); color: var(--ink); box-shadow: 0 4px 0 var(--wood-dark); padding: 10px 18px; }
 .btn-back { background: var(--wood); color: var(--ink); box-shadow: 0 4px 0 var(--wood-dark); font-size: 15px; padding: 8px 14px; }
 .btn-ok { background: var(--green-btn); box-shadow: 0 5px 0 var(--green-btn-dark); width: 100%; margin-top: 14px; }
